@@ -507,42 +507,52 @@ function newsImpact(entry){
 }
 function generateRoundNews(roundId){
   if(!AUTO_NEWS) return null;
-  const entry=weightedPick(NEWS_LIBRARY);
-  const marketWide=entry.category==='Market Risk'||entry.category==='Market Rally'||Math.random()<0.22;
-  const targetSector=marketWide?null:weightedSector();
-  let company='';
-  if(!marketWide && entry.category.includes('Earnings')){
-    const row=db.prepare(`SELECT name FROM stocks WHERE sector=? ORDER BY RANDOM() LIMIT 1`).get(targetSector);
-    company=row?.name||targetSector;
-  }
-  const [rawTitle,rawBody]=chooseTemplate(entry);
-  const title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{sector}}',targetSector||'the market');
-  const body=rawBody.replaceAll('{{company}}',company).replaceAll('{{sector}}',targetSector||'the market');
-  const impact=newsImpact(entry);
+  // Generate 7 independent stories per round. Each story contributes a controlled
+  // shock to the same round impact map; prices are still committed only at close.
+  const storyCount=7;
   const tx=db.transaction(()=>{
     db.prepare(`DELETE FROM market_news_events WHERE round_id=?`).run(roundId);
-    const info=db.prepare(`INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)`).run(roundId,entry.category,entry.sentiment,marketWide?'MARKET':'SECTOR',targetSector,title,body,impact);
+    db.prepare(`DELETE FROM round_impacts WHERE round_id=?`).run(roundId);
     const all=db.prepare(`SELECT id,sector FROM stocks`).all();
-    const upsert=db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=excluded.impact_pct`);
-    for(const st of all){
-      let pct=0;
-      if(marketWide){
-        const dispersion=randomBetween(0.55,1.0);
-        pct=money(impact*dispersion + randomBetween(-0.8,0.8));
-      }else if(st.sector===targetSector){
-        pct=money(impact*randomBetween(0.75,1.15));
-      }else{
-        // Spillover is small and can be positive or negative depending on the story.
-        pct=money(impact*randomBetween(0.02,0.16));
-        if(Math.random()<0.35)pct=-pct;
+    const upsert=db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct`);
+    const insertNews=db.prepare(`INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)`);
+    const stories=[]; const used=new Set();
+    for(let i=0;i<storyCount;i++){
+      let entry=weightedPick(NEWS_LIBRARY);
+      for(let attempt=0;attempt<8 && used.has(entry.category);attempt++) entry=weightedPick(NEWS_LIBRARY);
+      used.add(entry.category);
+      const marketWide=entry.category==='Market Risk'||entry.category==='Market Rally'||Math.random()<0.18;
+      const targetSector=marketWide?null:weightedSector();
+      let company='';
+      if(!marketWide && entry.category.includes('Earnings')){
+        const row=db.prepare(`SELECT name FROM stocks WHERE sector=? ORDER BY RANDOM() LIMIT 1`).get(targetSector);
+        company=row?.name||targetSector;
       }
-      pct=Math.max(-12,Math.min(12,pct));
-      upsert.run(roundId,st.id,pct);
+      const [rawTitle,rawBody]=chooseTemplate(entry);
+      const title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{sector}}',targetSector||'the market');
+      const body=rawBody.replaceAll('{{company}}',company).replaceAll('{{sector}}',targetSector||'the market');
+      const magnitude=randomBetween(AUTO_NEWS_MIN_PCT/2.2,AUTO_NEWS_MAX_PCT/2.2);
+      const impact=money((entry.sentiment==='positive'?1:-1)*magnitude);
+      const scope=marketWide?'MARKET':'SECTOR';
+      const info=insertNews.run(roundId,entry.category,entry.sentiment,scope,targetSector,title,body,impact);
+      stories.push({id:Number(info.lastInsertRowid),category:entry.category,sentiment:entry.sentiment,scope,targetSector,title,body,impactPct:impact});
+      for(const st of all){
+        let pct;
+        if(marketWide) pct=impact*randomBetween(0.45,0.85)+randomBetween(-0.35,0.35);
+        else if(st.sector===targetSector) pct=impact*randomBetween(0.70,1.10);
+        else { pct=impact*randomBetween(0.01,0.08); if(Math.random()<0.35)pct=-pct; }
+        upsert.run(roundId,st.id,money(Math.max(-4,Math.min(4,pct))));
+      }
     }
-    db.prepare(`UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?`).run(title,body,`${entry.category} · ${entry.sentiment.toUpperCase()} · ${marketWide?'MARKET-WIDE':targetSector} · model impact ${impact>0?'+':''}${impact}%`,roundId);
-    return Number(info.lastInsertRowid);
+    const cap=Math.max(AUTO_NEWS_MAX_PCT*1.35,8);
+    const impacts=db.prepare(`SELECT stock_id,impact_pct FROM round_impacts WHERE round_id=?`).all(roundId);
+    const normalize=db.prepare(`UPDATE round_impacts SET impact_pct=? WHERE round_id=? AND stock_id=?`);
+    for(const x of impacts) normalize.run(money(Math.max(-cap,Math.min(cap,Number(x.impact_pct)))),roundId,x.stock_id);
+    const lead=stories[0];
+    db.prepare(`UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?`).run(lead?.title||'Market briefing',`${stories.length} independent market stories generated automatically for this round.`,`${stories.length} stories · prices update automatically after trading`,roundId);
+    return stories;
   });
-  return {id:tx(),category:entry.category,sentiment:entry.sentiment,scope:marketWide?'MARKET':'SECTOR',targetSector,title,body,impactPct:impact};
+  return tx();
 }
 function applyRoundPrices(roundId){
   backupDatabase(`before-round-${roundId}`);
@@ -796,9 +806,10 @@ app.get("/api/player/dashboard", requireLogin, (req,res)=>{
   `).all(user(req).id);
   const r=currentRound();
   const news=r ? db.prepare(`SELECT id,status,news_title,news_body,news_impact_note FROM rounds WHERE id=?`).get(r) : null;
+  const newsEvents=r ? db.prepare(`SELECT id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events WHERE round_id=? ORDER BY id`).all(r) : [];
   const me=db.prepare(`SELECT status,last_seen_at,last_visibility,visibility_events FROM users WHERE id=?`).get(user(req).id);
   const history=db.prepare(`SELECT round_id,total,cash,market_value,profit,created_at FROM round_snapshots WHERE user_id=? ORDER BY round_id`).all(user(req).id);
-  res.json({portfolio:p,trades,round:news,state:state(),player:{status:me?.status||'active',lastSeenAt:me?.last_seen_at,lastVisibility:me?.last_visibility,visibilityEvents:me?.visibility_events||0},roundHistory:history});
+  res.json({portfolio:p,trades,round:news,newsEvents,state:state(),player:{status:me?.status||'active',lastSeenAt:me?.last_seen_at,lastVisibility:me?.last_visibility,visibilityEvents:me?.visibility_events||0},roundHistory:history});
 });
 
 app.post("/api/player/trade", requireLogin, (req,res)=>{
@@ -880,11 +891,16 @@ app.get("/api/player/transactions", requireLogin, (req,res)=>{
 });
 app.get("/api/player/export-transactions", requireLogin, (req,res)=>{
   if(user(req).role!=='player') return res.status(403).json({error:'Player access required'});
-  const rows=db.prepare(`SELECT t.created_at,t.round_id,s.symbol,s.name,t.side,t.quantity,t.price,t.total,t.order_type,t.limit_price,t.fee,t.net_total,t.realized_pnl
+  // Final player export intentionally contains only the four requested fields.
+  // The execution price is the actual price recorded for that transaction.
+  const rows=db.prepare(`SELECT t.round_id,s.name,t.price,t.quantity
     FROM trades t JOIN stocks s ON s.id=t.stock_id WHERE t.user_id=? ORDER BY t.id`).all(user(req).id);
-  const headers=['timestamp','round','symbol','name','side','quantity','execution_price','gross_total','order_type','limit_price','fee','net_total','realized_pnl'];
-  const csv=[headers.join(','),...rows.map(r=>headers.map(h=>{const v=r[h];return `"${String(v??'').replace(/"/g,'""')}"`}).join(','))].join('\n');
-  res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="stock-wars-transactions.csv"');res.send(csv);
+  const csvEscape=v=>{const text=String(v??'');return /[",\n\r]/.test(text)?`"${text.replace(/"/g,'""')}"`:text};
+  const headers=['Round','Stock Name','Price','Qty'];
+  const csv=['\uFEFF'+headers.join(','),...rows.map(r=>[r.round_id,r.name,Number(r.price).toFixed(2),r.quantity].map(csvEscape).join(','))].join('\r\n');
+  res.setHeader('Content-Type','text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition','attachment; filename="stock-wars-transaction-history.csv"');
+  res.send(csv);
 });
 
 
@@ -945,7 +961,7 @@ app.post("/api/admin/start-round", requireAdmin, (req,res)=>{
     db.prepare(`UPDATE rounds SET status='news',released_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'`).run(roundId);
     db.prepare(`UPDATE event_state SET current_round=?,event_status='live',phase='news',phase_started_at=?,phase_ends_at=?,paused_remaining=NULL,registration_open=0,updated_at=CURRENT_TIMESTAMP WHERE id=1`).run(roundId,start,end);
   })();
-  if(generated) audit(req,'AUTO_NEWS_GENERATED',{roundId,category:generated.category,sentiment:generated.sentiment,scope:generated.scope,targetSector:generated.targetSector,impactPct:generated.impactPct});
+  if(generated?.length) audit(req,'AUTO_NEWS_GENERATED',{roundId,storyCount:generated.length,categories:generated.map(x=>x.category),sentiments:generated.map(x=>x.sentiment)});
   audit(req,'START_ROUND',{roundId});
   emitState(); res.json({ok:true,state:state()});
 });
