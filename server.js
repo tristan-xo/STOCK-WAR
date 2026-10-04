@@ -203,6 +203,44 @@ CREATE TABLE IF NOT EXISTS round_snapshots (
 );
 `);
 
+// Migration: early autonomous-news builds accidentally made round_id UNIQUE in
+// market_news_events. That allowed only one story per round, so story #2 caused
+// the Start Round request to fail. Rebuild the table once on existing databases.
+(function migrateNewsEventsTable(){
+  const indexes = db.prepare(`PRAGMA index_list(market_news_events)`).all();
+  const hasUniqueRoundIndex = indexes.some(ix => {
+    if (!ix.unique) return false;
+    const cols = db.prepare(`PRAGMA index_info(${JSON.stringify(ix.name)})`).all();
+    return cols.length === 1 && cols[0].name === 'round_id';
+  });
+  if (!hasUniqueRoundIndex) return;
+  db.pragma('foreign_keys = OFF');
+  try {
+    db.transaction(() => {
+      db.exec(`CREATE TABLE market_news_events_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        round_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        sentiment TEXT NOT NULL,
+        scope TEXT NOT NULL,
+        target_sector TEXT,
+        headline TEXT NOT NULL,
+        body TEXT NOT NULL,
+        impact_pct REAL NOT NULL DEFAULT 0,
+        generated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(round_id) REFERENCES rounds(id) ON DELETE CASCADE
+      );`);
+      db.exec(`INSERT INTO market_news_events_new (id,round_id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at)
+               SELECT id,round_id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at
+               FROM market_news_events ORDER BY id;`);
+      db.exec(`DROP TABLE market_news_events;`);
+      db.exec(`ALTER TABLE market_news_events_new RENAME TO market_news_events;`);
+    })();
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
+})();
+
 // Lightweight migrations for databases created by earlier Stock Wars versions.
 const eventColumns = db.prepare(`PRAGMA table_info(event_state)`).all().map(x=>x.name);
 for (const [name, type] of [["phase","TEXT NOT NULL DEFAULT 'idle'"],["phase_started_at","INTEGER"],["phase_ends_at","INTEGER"],["paused_remaining","INTEGER"]]) {
