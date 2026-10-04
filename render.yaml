@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: stock-wars
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: EVENT_NAME
+        value: Stock Wars
+      - key: STARTING_CAPITAL
+        value: "200000"
+      - key: NEWS_SECONDS
+        value: "120"
+      - key: TRADE_SECONDS
+        value: "180"
+      - key: AUTO_NEWS
+        value: "true"
+      - key: AUTO_NEWS_MIN_PCT
+        value: "2"
+      - key: AUTO_NEWS_MAX_PCT
+        value: "9"
+      - key: COST_BASIS_METHOD
+        value: FIFO
+      - key: SLIPPAGE_BPS
+        value: "5"
+      - key: MAX_IMPACT_BPS
+        value: "50"
+      - key: DB_PATH
+        value: /var/data/stockwars.db
+    disk:
+      name: stock-wars-data
+      mountPath: /var/data
+      sizeGB: 1
