@@ -145,11 +145,11 @@ async function playerPage(){
   if(renderSeq!==playerRenderSeq)return;
   STATE=d.state;if(d.player&&ME)ME.status=d.player.status;
   const p=d.portfolio,r=d.round;const can=r?.status==='trading'&&STATE.event_status==='live'&&STATE.phase==='trading'&&d.player?.status!=='suspended';
-  shell(`<div class="hero playerhero"><div class="heroCopy"><span class="eyebrow">ROUND ${STATE.current_round||'—'} / 6</span><h2>${r?.news_title?esc(r.news_title):'Welcome to Stock Wars'}</h2><p>${STATE.phase==='news'?'Read the market stories below, identify the stocks and sectors most affected, and trade before the market reacts.':(r?.news_body?esc(r.news_body):'Your mission: build the most valuable portfolio before the final bell.')}</p><div class="playerBadge">${esc(ME?.playerId||('STW-'+String(ME?.id||'').padStart(3,'0')))} · ${esc(ME?.name||'Player')}</div>${d.player?.status==='suspended'?'<div class="alert dangerAlert">Your trading access has been suspended by the host. You can still view the event.</div>':''}</div><div class="heroState"><div class="stateIcon">${STATE.phase==='news'?icon('news'):STATE.phase==='trading'?icon('chart'):'•'}</div><div><b>${STATE.phase==='news'?'Market Briefing':STATE.phase==='trading'?'Market Open':'Standby'}</b><small>${STATE.event_status==='paused'?'Emergency pause active':can?'Orders accepted':'Waiting for market'}</small></div></div></div><section class="marketPulse card"><div class="pulseHead"><div><span class="eyebrow">LIVE MARKET PULSE</span><h2>Round ${STATE.current_round||'—'} News</h2><p>${d.newsEvents?.length||0} independent stories · prices react after trading closes</p></div><span class="newsCount">${d.newsEvents?.length||0} STORIES</span></div><div class="playerNewsPaperList">${(d.newsEvents||[]).map((n,i)=>`<article class="playerNewsStory">
-  <div class="playerNewsNo">${i+1}</div>
-  <div class="playerNewsDivider"></div>
-  <div class="playerNewsContent">
-    <div class="playerNewsMeta"><span>${esc(n.category)}</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div>
+  shell(`<div class="hero playerhero"><div class="heroCopy"><span class="eyebrow">ROUND ${STATE.current_round||'—'} / 6</span><h2>${r?.news_title?esc(r.news_title):'Welcome to Stock Wars'}</h2><p>${STATE.phase==='news'?'Read the market stories below, identify the stocks and sectors most affected, and trade before the market reacts.':(r?.news_body?esc(r.news_body):'Your mission: build the most valuable portfolio before the final bell.')}</p><div class="playerBadge">${esc(ME?.playerId||('STW-'+String(ME?.id||'').padStart(3,'0')))} · ${esc(ME?.name||'Player')}</div>${d.player?.status==='suspended'?'<div class="alert dangerAlert">Your trading access has been suspended by the host. You can still view the event.</div>':''}</div><div class="heroState"><div class="stateIcon">${STATE.phase==='news'?icon('news'):STATE.phase==='trading'?icon('chart'):'•'}</div><div><b>${STATE.phase==='news'?'Market Briefing':STATE.phase==='trading'?'Market Open':'Standby'}</b><small>${STATE.event_status==='paused'?'Emergency pause active':can?'Orders accepted':'Waiting for market'}</small></div></div></div><section class="marketPulse card"><div class="pulseHead"><div><span class="eyebrow">LIVE MARKET PULSE</span><h2>Round ${STATE.current_round||'—'} News</h2><p>${d.newsEvents?.length||0} independent stories · prices react after trading closes</p></div><span class="newsCount">${d.newsEvents?.length||0} STORIES</span></div><div class="playerNewsPaperV8">${(d.newsEvents||[]).map((n,i)=>`<article class="playerNewsStoryV8">
+  <div class="playerNewsNoV8">${i+1}</div>
+  <div class="playerNewsDividerV8"></div>
+  <div class="playerNewsContentV8">
+    <div class="playerNewsMetaV8"><span>${esc(n.category)}</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div>
     <h3>${esc(n.headline)}</h3>
     <p>${esc(n.body)}</p>
   </div>
@@ -319,14 +319,13 @@ function adminOverview(o){const active=STATE.phase;$('#admin').innerHTML=`<div c
   <div><span class="eyebrow">CURRENT NEWS</span><h2>${STATE.current_round?`Round ${STATE.current_round} · ${o.newsEvents?.length||0} stories`:'No active round'}</h2></div>
 </div>
 ${o.newsEvents?.length ? `<div class="hostNewsPaperList">${o.newsEvents.map((n,i)=>`
-  <article class="newsPaperStory hostPaperStory ${n.sentiment==='positive'?'positive':n.sentiment==='negative'?'negative':'neutral'}">
-    <div class="newsPaperNo">${i+1}</div>
-    <div class="newsPaperDivider"></div>
-    <div class="newsPaperContent">
-      <div class="newsPaperMeta"><span>${esc(n.category)}</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span><b>${n.sentiment==='positive'?'▲ POSITIVE':n.sentiment==='negative'?'▼ NEGATIVE':'● NEUTRAL'}</b></div>
+  <article class="hostNewsStoryV8">
+    <div class="hostNewsNoV8">${i+1}</div>
+    <div class="hostNewsDividerV8"></div>
+    <div class="hostNewsContentV8">
+      <div class="hostNewsMetaV8"><span>${esc(n.category)}</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div>
       <h3>${esc(n.headline)}</h3>
       <p>${esc(n.body)}</p>
-      <div class="newsPaperImpact">EXPECTED MARKET IMPACT <strong>${Number(n.impact_pct)>=0?'+':''}${Number(n.impact_pct).toFixed(2)}%</strong></div>
     </div>
   </article>`).join('')}</div>` : '<div class="empty">Start a round to publish news.</div>'}
 </div><div class="card c12"><div class="sectionHead"><div><span class="eyebrow">LIVE RANKING</span><h2>Top Players</h2></div></div><div id="hostLeaderboard"></div></div></div>`;loadHostLeaderboard();syncHostTimer()}

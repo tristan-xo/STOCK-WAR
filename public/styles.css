@@ -522,3 +522,240 @@ table th,table td{line-height:1.45}
   .playerNewsContent p{font-size:11px;line-height:1.55}
   .playerNewsMeta{font-size:8px}
 }
+
+/* =========================================================
+   STOCK WARS NEWS UI V8
+   Newspaper layout for BOTH portals.
+   No sentiment labels or model/impact values are player/host visible.
+   ========================================================= */
+
+.marketPulse .playerNewsPaperV8{
+  display:flex!important;
+  flex-direction:column!important;
+  width:100%!important;
+  max-height:820px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  background:#fff!important;
+  border-top:2px solid #172033!important;
+  border-bottom:2px solid #172033!important;
+  box-sizing:border-box!important;
+}
+.playerNewsStoryV8{
+  display:grid!important;
+  grid-template-columns:64px 2px minmax(0,1fr)!important;
+  gap:14px!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  flex:none!important;
+  box-sizing:border-box!important;
+  align-items:stretch!important;
+  padding:17px 10px 17px 0!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #d8dee7!important;
+  border-radius:0!important;
+  background:#fff!important;
+  overflow:visible!important;
+}
+.playerNewsStoryV8:last-child{border-bottom:0!important}
+.playerNewsNoV8{
+  display:block!important;
+  align-self:start!important;
+  text-align:center!important;
+  padding-top:1px!important;
+  font:950 52px/.9 Arial,Helvetica,sans-serif!important;
+  letter-spacing:-.06em!important;
+  color:#c8102e!important;
+}
+.playerNewsStoryV8:nth-child(even) .playerNewsNoV8{color:#a9adb5!important}
+.playerNewsDividerV8{
+  display:block!important;
+  width:2px!important;
+  min-width:2px!important;
+  min-height:100%!important;
+  align-self:stretch!important;
+  background:#273241!important;
+}
+.playerNewsContentV8{
+  display:block!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+.playerNewsMetaV8{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin:0 0 7px!important;
+  color:#667384!important;
+  font-size:9px!important;
+  line-height:1.25!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+}
+.playerNewsMetaV8 span:first-child{color:#172033!important}
+.playerNewsMetaV8 span+span:before{
+  content:"·"!important;
+  margin-right:7px!important;
+  color:#a1aab5!important;
+}
+.playerNewsContentV8 h3{
+  display:block!important;
+  margin:0 0 8px!important;
+  padding:0!important;
+  color:#101722!important;
+  font-size:18px!important;
+  line-height:1.25!important;
+  font-weight:950!important;
+  letter-spacing:-.02em!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+}
+.playerNewsContentV8 p{
+  display:block!important;
+  width:100%!important;
+  max-width:900px!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  color:#465467!important;
+  font-size:12px!important;
+  line-height:1.6!important;
+  white-space:pre-line!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+}
+
+/* Host */
+.hostNewsPaperList{
+  display:flex!important;
+  flex-direction:column!important;
+  width:100%!important;
+  max-height:760px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  background:#fff!important;
+  border-top:2px solid #172033!important;
+  border-bottom:2px solid #172033!important;
+  box-sizing:border-box!important;
+}
+.hostNewsStoryV8{
+  display:grid!important;
+  grid-template-columns:54px 2px minmax(0,1fr)!important;
+  gap:12px!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  flex:none!important;
+  box-sizing:border-box!important;
+  align-items:stretch!important;
+  padding:14px 5px 14px 0!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #d8dee7!important;
+  border-radius:0!important;
+  background:#fff!important;
+  overflow:visible!important;
+}
+.hostNewsStoryV8:last-child{border-bottom:0!important}
+.hostNewsNoV8{
+  align-self:start!important;
+  text-align:center!important;
+  padding-top:2px!important;
+  font:950 46px/.9 Arial,Helvetica,sans-serif!important;
+  letter-spacing:-.06em!important;
+  color:#c8102e!important;
+}
+.hostNewsStoryV8:nth-child(even) .hostNewsNoV8{color:#a9adb5!important}
+.hostNewsDividerV8{
+  width:2px!important;
+  min-width:2px!important;
+  min-height:100%!important;
+  align-self:stretch!important;
+  background:#273241!important;
+}
+.hostNewsContentV8{
+  min-width:0!important;
+  width:100%!important;
+  height:auto!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+.hostNewsMetaV8{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+  margin:0 0 5px!important;
+  color:#667384!important;
+  font-size:8px!important;
+  line-height:1.25!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+}
+.hostNewsMetaV8 span:first-child{color:#172033!important}
+.hostNewsMetaV8 span+span:before{
+  content:"·"!important;
+  margin-right:7px!important;
+  color:#a1aab5!important;
+}
+.hostNewsContentV8 h3{
+  margin:0 0 6px!important;
+  color:#101722!important;
+  font-size:15px!important;
+  line-height:1.25!important;
+  font-weight:950!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+}
+.hostNewsContentV8 p{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  color:#465467!important;
+  font-size:11px!important;
+  line-height:1.55!important;
+  white-space:pre-line!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+}
+
+@media(max-width:760px){
+  .marketPulse .playerNewsPaperV8{max-height:none!important}
+  .playerNewsStoryV8{
+    grid-template-columns:44px 2px minmax(0,1fr)!important;
+    gap:10px!important;
+    padding:14px 2px 14px 0!important;
+  }
+  .playerNewsNoV8{font-size:42px!important}
+  .playerNewsContentV8 h3{font-size:16px!important;line-height:1.25!important}
+  .playerNewsContentV8 p{font-size:11px!important;line-height:1.55!important}
+  .playerNewsMetaV8{font-size:8px!important}
+  .hostNewsPaperList{max-height:none!important}
+  .hostNewsStoryV8{
+    grid-template-columns:40px 2px minmax(0,1fr)!important;
+    gap:9px!important;
+    padding:13px 2px 13px 0!important;
+  }
+  .hostNewsNoV8{font-size:38px!important}
+}
