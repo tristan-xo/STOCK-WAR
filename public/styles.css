@@ -413,3 +413,112 @@ table th,table td{line-height:1.45}
   .newsPaperList{max-height:none}
   .hostNewsPaperList{max-height:none}
 }
+
+/* Player portal newspaper news — content-driven height, no sentiment/model values */
+.playerNewsPaperList{
+  display:flex;
+  flex-direction:column;
+  background:#fff;
+  border-top:2px solid #172033;
+  border-bottom:2px solid #172033;
+  max-height:850px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-gutter:stable;
+}
+.playerNewsStory{
+  display:grid;
+  grid-template-columns:68px 2px minmax(0,1fr);
+  gap:14px;
+  width:100%;
+  min-width:0;
+  height:auto !important;
+  min-height:0 !important;
+  box-sizing:border-box;
+  align-items:stretch;
+  padding:16px 8px 16px 0;
+  border-bottom:1px solid #d8dee7;
+  background:#fff;
+  overflow:visible;
+}
+.playerNewsStory:last-child{border-bottom:0}
+.playerNewsNo{
+  align-self:start;
+  text-align:center;
+  padding-top:2px;
+  font-size:52px;
+  line-height:.9;
+  font-weight:950;
+  letter-spacing:-.06em;
+  color:#c8102e;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.playerNewsStory:nth-child(even) .playerNewsNo{color:#a9adb5}
+.playerNewsDivider{
+  width:2px;
+  min-height:100%;
+  background:#273241;
+  align-self:stretch;
+}
+.playerNewsContent{
+  min-width:0;
+  max-width:100%;
+  overflow:visible;
+}
+.playerNewsMeta{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 6px;
+  font-size:9px;
+  line-height:1.25;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:900;
+  color:#667384;
+}
+.playerNewsMeta span:first-child{color:#172033}
+.playerNewsMeta span+span::before{
+  content:"·";
+  margin-right:8px;
+  color:#a1aab5;
+}
+.playerNewsContent h3{
+  margin:0 0 7px;
+  color:#101722;
+  font-size:18px;
+  line-height:1.22;
+  font-weight:950;
+  letter-spacing:-.02em;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.playerNewsContent p{
+  display:block;
+  width:100%;
+  max-width:900px;
+  height:auto !important;
+  min-height:0 !important;
+  margin:0;
+  padding:0;
+  color:#465467;
+  font-size:12px;
+  line-height:1.58;
+  white-space:pre-line;
+  overflow:visible !important;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+@media(max-width:760px){
+  .playerNewsPaperList{max-height:none}
+  .playerNewsStory{
+    grid-template-columns:45px 2px minmax(0,1fr);
+    gap:10px;
+    padding:14px 2px 14px 0;
+  }
+  .playerNewsNo{font-size:43px}
+  .playerNewsContent h3{font-size:16px;line-height:1.25}
+  .playerNewsContent p{font-size:11px;line-height:1.55}
+  .playerNewsMeta{font-size:8px}
+}
