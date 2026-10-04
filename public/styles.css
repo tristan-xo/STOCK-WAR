@@ -291,3 +291,23 @@ table th,table td{line-height:1.45}
 
 .newsItem p{white-space:pre-line;line-height:1.65;min-height:6.6em;margin:10px 0 14px}
 @media(max-width:700px){.newsItem p{min-height:0;line-height:1.55}}
+
+.hostNewsPanel{min-width:0}
+.hostNewsList{display:grid;gap:10px;max-height:720px;overflow:auto;padding-right:4px}
+.hostNewsStory{padding:14px;border:1px solid var(--line);border-left:4px solid #8aa0b7;border-radius:12px;background:#f8fafc}
+.hostNewsStory.positive{border-left-color:#198754}
+.hostNewsStory.negative{border-left-color:#d64545}
+.hostNewsStory.neutral{border-left-color:#b7791f}
+.hostNewsMeta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:10px;font-weight:850;color:#66768a;margin-bottom:7px}
+.hostNewsMeta b{margin-left:auto}
+.hostNewsStory.positive .hostNewsMeta b{color:#147a4b}
+.hostNewsStory.negative .hostNewsMeta b{color:#b4232f}
+.hostNewsStory.neutral .hostNewsMeta b{color:#946200}
+.hostNewsNo{font-weight:950;color:#526274}
+.hostNewsStory h3{font-size:15px;line-height:1.35;margin:0 0 7px;color:#172033}
+.hostNewsStory p{white-space:pre-line;font-size:12px;line-height:1.55;color:#59697b;margin:0 0 9px}
+.hostNewsImpact{font-size:10px;color:#657487;border-top:1px solid #e1e7ef;padding-top:8px}
+.hostNewsImpact strong{color:#172033}
+.hostNewsStory.positive .hostNewsImpact strong{color:#147a4b}
+.hostNewsStory.negative .hostNewsImpact strong{color:#b4232f}
+@media(max-width:900px){.hostGrid{grid-template-columns:1fr}.hostGrid .c4{grid-column:1/-1}.hostNewsList{max-height:none}}

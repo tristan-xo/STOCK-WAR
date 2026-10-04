@@ -669,7 +669,14 @@ function generateRoundNews(roundId){
     const normalize=db.prepare(`UPDATE round_impacts SET impact_pct=? WHERE round_id=? AND stock_id=?`);
     for(const x of impacts) normalize.run(money(Math.max(-cap,Math.min(cap,Number(x.impact_pct)))),roundId,x.stock_id);
     const lead=stories[0];
-    db.prepare(`UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?`).run(lead?.title||'Market briefing',`${stories.length} stories covering different sectors and stocks were generated automatically for this round.`,`${stories.length} stories · stock + sector impacts · prices update after trading`,roundId);
+    const roundTitle=`Round ${roundId} · ${stories.length} market stories`;
+    const roundSummary=stories.slice(0,3).map((x,i)=>`${i+1}. ${x.title}`).join('\n');
+    db.prepare(`UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?`).run(
+      roundTitle,
+      `${stories.length} independent stock and sector stories are live.\n${roundSummary}`,
+      `${stories.length} stories · each story has its own stock/sector impact · prices update after trading`,
+      roundId
+    );
     return stories;
   });
   return tx();
@@ -1250,7 +1257,10 @@ app.get("/api/admin/overview", requireAdmin, (req,res)=>{
   const playerCount=db.prepare(`SELECT COUNT(*) c FROM users WHERE role='player'`).get().c;
   const tradeCount=db.prepare(`SELECT COUNT(*) c FROM trades`).get().c;
   const r=st.current_round?db.prepare(`SELECT * FROM rounds WHERE id=?`).get(st.current_round):null;
-  res.json({state:st,playerCount,tradeCount,round:r,timing:{newsSeconds:NEWS_SECONDS,tradeSeconds:TRADE_SECONDS}});
+  const newsEvents=st.current_round
+    ? db.prepare(`SELECT id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events WHERE round_id=? ORDER BY id`).all(st.current_round)
+    : [];
+  res.json({state:st,playerCount,tradeCount,round:r,newsEvents,timing:{newsSeconds:NEWS_SECONDS,tradeSeconds:TRADE_SECONDS}});
 });
 
 
