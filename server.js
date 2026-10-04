@@ -649,10 +649,9 @@ function generateRoundNews(roundId){
       const symbol=companyRow?.symbol||'';
       const [rawTitle,rawBody]=chooseTemplate(entry);
       const title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{symbol}}',symbol).replaceAll('{{sector}}',targetSector||'the market');
-      const rawBodyText=rawBody.replaceAll('{{company}}',company).replaceAll('{{symbol}}',symbol).replaceAll('{{sector}}',targetSector||'the market');
-      const body=buildNewsBody(entry,company,targetSector||'Indian equities',entry.sentiment,impact,marketWide);
       const magnitude=randomBetween(AUTO_NEWS_MIN_PCT/2.2,AUTO_NEWS_MAX_PCT/2.2);
       const impact=money((entry.sentiment==='positive'?1:-1)*magnitude);
+      const body=buildNewsBody(entry,company,targetSector||'Indian equities',entry.sentiment,impact,marketWide);
       const scope=marketWide?'MARKET':'STOCK+SECTOR';
       const info=insertNews.run(roundId,entry.category,entry.sentiment,scope,targetSector,title,body,impact);
       stories.push({id:Number(info.lastInsertRowid),category:entry.category,sentiment:entry.sentiment,scope,targetSector,title,body,impactPct:impact,stock:company,symbol});
@@ -1075,13 +1074,19 @@ app.post("/api/admin/start-round", requireAdmin, (req,res)=>{
   if(st.current_round>0){ const previous=db.prepare(`SELECT status FROM rounds WHERE id=?`).get(st.current_round); if(!previous || previous.status!=="applied") return res.status(400).json({error:"Previous round is not finished yet."}); }
   const start=nowMs(), end=start+NEWS_SECONDS*1000;
   // Generate the scenario before opening the round so players can never observe a live round without its news/impact map.
-  const generated=generateRoundNews(roundId);
-  db.transaction(()=>{
-    const latest=state();
-    if(latest.current_round!==st.current_round || latest.event_status==='live' || latest.event_status==='paused') throw new Error('Event state changed. Please retry.');
-    db.prepare(`UPDATE rounds SET status='news',released_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'`).run(roundId);
-    db.prepare(`UPDATE event_state SET current_round=?,event_status='live',phase='news',phase_started_at=?,phase_ends_at=?,paused_remaining=NULL,registration_open=0,updated_at=CURRENT_TIMESTAMP WHERE id=1`).run(roundId,start,end);
-  })();
+  let generated;
+  try {
+    generated=generateRoundNews(roundId);
+    db.transaction(()=>{
+      const latest=state();
+      if(latest.current_round!==st.current_round || latest.event_status==='live' || latest.event_status==='paused') throw new Error('Event state changed. Please retry.');
+      db.prepare(`UPDATE rounds SET status='news',released_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'`).run(roundId);
+      db.prepare(`UPDATE event_state SET current_round=?,event_status='live',phase='news',phase_started_at=?,phase_ends_at=?,paused_remaining=NULL,registration_open=0,updated_at=CURRENT_TIMESTAMP WHERE id=1`).run(roundId,start,end);
+    })();
+  } catch (err) {
+    console.error('START_ROUND failed:', err);
+    return res.status(500).json({error:`Unable to start Round ${roundId}: ${err.message}`});
+  }
   if(generated?.length) audit(req,'AUTO_NEWS_GENERATED',{roundId,storyCount:generated.length,categories:generated.map(x=>x.category),sentiments:generated.map(x=>x.sentiment)});
   audit(req,'START_ROUND',{roundId});
   emitState(); res.json({ok:true,state:state()});
