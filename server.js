@@ -505,22 +505,22 @@ const NEWS_LIBRARY = [
     ['{{company}} cuts outlook amid softer demand','{{company}} lowered its near-term outlook after signs of softer demand and cautious customer spending.']
   ]},
   {category:'Regulatory Shift', sentiment:'negative', weight:10, templates:[
-    ['Regulator tightens rules for {{sector}} businesses','New compliance requirements are expected to increase costs and slow near-term expansion across parts of the {{sector}} industry.']
+    ['{{company}} faces tighter regulatory scrutiny','New compliance requirements are expected to increase costs and slow near-term expansion, with {{company}} among the companies most exposed.']
   ]},
   {category:'Policy Support', sentiment:'positive', weight:10, templates:[
-    ['Government announces support package for {{sector}}','A new policy package is expected to support investment and demand across the {{sector}} industry.']
+    ['Policy support gives {{company}} a boost','A new policy package is expected to support investment and demand across {{sector}}, with {{company}} positioned to benefit.']
   ]},
   {category:'Commodity Shock', sentiment:'negative', weight:9, templates:[
-    ['Input costs jump, pressuring {{sector}} margins','A sharp move in key input costs is expected to pressure margins for companies across the {{sector}} sector.']
+    ['Input costs rise, pressuring {{company}} margins','A sharp move in key input costs is expected to pressure margins across {{sector}}, with {{company}} among the more exposed names.']
   ]},
   {category:'Demand Surge', sentiment:'positive', weight:9, templates:[
-    ['Demand accelerates across {{sector}}','Industry data points to a stronger demand cycle across {{sector}}, improving volume expectations for major companies.']
+    ['Demand surge lifts {{company}} outlook','Industry data points to a stronger demand cycle across {{sector}}, improving volume expectations for {{company}} and peers.']
   ]},
   {category:'Major Contract', sentiment:'positive', weight:8, templates:[
-    ['Large contract boosts confidence in {{sector}}','A major new contract is expected to improve revenue visibility and sentiment across the {{sector}} industry.']
+    ['{{company}} wins a major new contract','The contract is expected to improve revenue visibility and sentiment for {{company}}, with positive spillovers across {{sector}}.']
   ]},
   {category:'Supply Disruption', sentiment:'negative', weight:7, templates:[
-    ['Supply disruption hits {{sector}}','Logistics and supply constraints are expected to create near-term production and delivery pressure across {{sector}}.']
+    ['Supply disruption hits {{company}}','Logistics and supply constraints are expected to create near-term production and delivery pressure for {{company}} and parts of {{sector}}.']
   ]},
   {category:'Market Risk', sentiment:'negative', weight:8, templates:[
     ['Global risk-off mood weighs on Indian equities','Rising global uncertainty is pushing investors toward safer assets, creating broad pressure across Indian equities.']
@@ -543,42 +543,125 @@ function newsImpact(entry){
   const magnitude=randomBetween(AUTO_NEWS_MIN_PCT,AUTO_NEWS_MAX_PCT);
   return money((entry.sentiment==='positive'?1:-1)*magnitude);
 }
+function buildNewsBody(entry, company, sector, sentiment, impact, marketWide){
+  const direction=sentiment==='positive'?'positive':'negative';
+  const pct=(Math.abs(Number(impact))||0).toFixed(1);
+  const subject=marketWide?'Indian equities':company;
+  const sectorText=marketWide?'the broader market':sector;
+  const lines={
+    'Earnings Surprise':[
+      `${company} reported a stronger-than-expected quarter, supported by resilient demand and improved operating execution.`,
+      `Management highlighted healthy order flow and better visibility for the coming period.`,
+      `Analysts expect the result to improve sentiment around ${company} and the wider ${sector} space.`,
+      `The market is watching whether the stronger performance can be sustained in the next quarter.`
+    ],
+    'Earnings Miss':[
+      `${company} reported weaker-than-expected results as demand and margins came under pressure.`,
+      `Management pointed to cautious customer spending and higher operating costs as key concerns.`,
+      `The weaker update is putting pressure on sentiment across the ${sector} sector.`,
+      `Investors will watch upcoming guidance for signs of stabilization or further deterioration.`
+    ],
+    'Regulatory Shift':[
+      `Regulators have introduced tighter requirements that could affect ${company}'s near-term operations.`,
+      `The changes are expected to increase compliance costs and may slow planned expansion.`,
+      `${company} is among the more exposed names in the ${sector} sector.`,
+      `Investors are assessing how quickly the company can adapt without affecting profitability.`
+    ],
+    'Policy Support':[
+      `A new policy package is expected to support investment and demand across the ${sector} sector.`,
+      `${company} is positioned to benefit from the proposed incentives and higher activity.`,
+      `Industry participants expect the measures to improve order visibility over the coming quarters.`,
+      `The market is now assessing how quickly the policy support can translate into earnings.`
+    ],
+    'Commodity Shock':[
+      `A sharp move in key input prices is changing the cost outlook for ${company}.`,
+      `Higher input costs could pressure margins if the increase cannot be passed on to customers.`,
+      `Other companies across ${sector} may face similar cost pressure.`,
+      `Investors are watching commodity prices closely for signs of further escalation or relief.`
+    ],
+    'Demand Surge':[
+      `Fresh industry data points to stronger demand across ${sector}, improving volume expectations.`,
+      `${company} is among the companies positioned to capture the increase in customer activity.`,
+      `Higher utilization and stronger volumes could support revenue growth in the coming periods.`,
+      `The key question for investors is whether the demand improvement will persist.`
+    ],
+    'Major Contract':[
+      `${company} has secured a major new contract that improves its revenue visibility.`,
+      `The project is expected to contribute to future order execution and cash flows.`,
+      `The announcement also improves sentiment toward selected companies in ${sector}.`,
+      `Investors will track execution milestones and the contract's contribution to earnings.`
+    ],
+    'Supply Disruption':[
+      `A supply-chain disruption is creating near-term production and delivery pressure for ${company}.`,
+      `Logistics constraints could delay shipments and increase operating costs.`,
+      `Parts of the ${sector} sector may also experience knock-on effects if the disruption persists.`,
+      `Investors are watching inventory levels and recovery timelines for further clues.`
+    ],
+    'Market Risk':[
+      `Rising global uncertainty is pushing investors toward safer assets and reducing risk appetite.`,
+      `Indian equities are facing broader selling pressure as investors reassess growth expectations.`,
+      `High-beta sectors and stocks may see larger moves as volatility increases.`,
+      `Market participants are watching global cues and institutional flows for signs of stabilization.`
+    ],
+    'Market Rally':[
+      `Improved global risk appetite is supporting broader buying across Indian equities.`,
+      `Stronger overseas flows and easing uncertainty are improving market sentiment.`,
+      `Cyclical and growth-oriented sectors are seeing increased investor interest.`,
+      `The market will watch whether the positive momentum can continue through the session.`
+    ]
+  };
+  const chosen=lines[entry.category]||[
+    `${subject} is seeing a ${direction} development that is attracting investor attention.`,
+    `The development is expected to influence sentiment across ${sectorText}.`,
+    `Market participants are reassessing near-term earnings and growth expectations.`,
+    `Investors will watch subsequent updates to determine whether the move is sustained.`
+  ];
+  return chosen.join('\\n');
+}
 function generateRoundNews(roundId){
   if(!AUTO_NEWS) return null;
-  // Generate 7 independent stories per round. Each story contributes a controlled
-  // shock to the same round impact map; prices are still committed only at close.
-  const storyCount=7;
+  // Eight distinct stories: normally six different sectors + two company/market
+  // stories. Each story names a real stock where possible, while its impact also
+  // propagates to peers in the same sector. Prices are not changed until trading closes.
+  const storyCount=8;
   const tx=db.transaction(()=>{
     db.prepare(`DELETE FROM market_news_events WHERE round_id=?`).run(roundId);
     db.prepare(`DELETE FROM round_impacts WHERE round_id=?`).run(roundId);
-    const all=db.prepare(`SELECT id,sector FROM stocks`).all();
+    const all=db.prepare(`SELECT id,name,symbol,sector FROM stocks`).all();
     const upsert=db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct`);
     const insertNews=db.prepare(`INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)`);
-    const stories=[]; const used=new Set();
+    const stories=[]; const usedCategories=new Set(); const usedSectors=new Set();
+    const sectorPool=NEWS_SECTOR_WEIGHTS.map(([sector])=>sector).sort(()=>Math.random()-0.5);
+    const pickFreshSector=()=>{
+      const available=sectorPool.filter(x=>!usedSectors.has(x));
+      const sector=available.length?available[0]:weightedSector();
+      usedSectors.add(sector); return sector;
+    };
     for(let i=0;i<storyCount;i++){
-      let entry=weightedPick(NEWS_LIBRARY);
-      for(let attempt=0;attempt<8 && used.has(entry.category);attempt++) entry=weightedPick(NEWS_LIBRARY);
-      used.add(entry.category);
-      const marketWide=entry.category==='Market Risk'||entry.category==='Market Rally'||Math.random()<0.18;
-      const targetSector=marketWide?null:weightedSector();
-      let company='';
-      if(!marketWide && entry.category.includes('Earnings')){
-        const row=db.prepare(`SELECT name FROM stocks WHERE sector=? ORDER BY RANDOM() LIMIT 1`).get(targetSector);
-        company=row?.name||targetSector;
-      }
+      const candidates=NEWS_LIBRARY.filter(x=>!usedCategories.has(x.category));
+      const entry=weightedPick(candidates.length?candidates:NEWS_LIBRARY);
+      usedCategories.add(entry.category);
+      const marketWide=(entry.category==='Market Risk'||entry.category==='Market Rally') && i>=6;
+      const targetSector=marketWide?null:pickFreshSector();
+      const sectorStocks=targetSector?all.filter(st=>st.sector===targetSector):[];
+      const companyRow=sectorStocks.length?sectorStocks[Math.floor(Math.random()*sectorStocks.length)]:null;
+      const company=companyRow?.name||targetSector||'Indian equities';
+      const symbol=companyRow?.symbol||'';
       const [rawTitle,rawBody]=chooseTemplate(entry);
-      const title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{sector}}',targetSector||'the market');
-      const body=rawBody.replaceAll('{{company}}',company).replaceAll('{{sector}}',targetSector||'the market');
+      const title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{symbol}}',symbol).replaceAll('{{sector}}',targetSector||'the market');
+      const rawBodyText=rawBody.replaceAll('{{company}}',company).replaceAll('{{symbol}}',symbol).replaceAll('{{sector}}',targetSector||'the market');
+      const body=buildNewsBody(entry,company,targetSector||'Indian equities',entry.sentiment,impact,marketWide);
       const magnitude=randomBetween(AUTO_NEWS_MIN_PCT/2.2,AUTO_NEWS_MAX_PCT/2.2);
       const impact=money((entry.sentiment==='positive'?1:-1)*magnitude);
-      const scope=marketWide?'MARKET':'SECTOR';
+      const scope=marketWide?'MARKET':'STOCK+SECTOR';
       const info=insertNews.run(roundId,entry.category,entry.sentiment,scope,targetSector,title,body,impact);
-      stories.push({id:Number(info.lastInsertRowid),category:entry.category,sentiment:entry.sentiment,scope,targetSector,title,body,impactPct:impact});
+      stories.push({id:Number(info.lastInsertRowid),category:entry.category,sentiment:entry.sentiment,scope,targetSector,title,body,impactPct:impact,stock:company,symbol});
       for(const st of all){
         let pct;
-        if(marketWide) pct=impact*randomBetween(0.45,0.85)+randomBetween(-0.35,0.35);
-        else if(st.sector===targetSector) pct=impact*randomBetween(0.70,1.10);
-        else { pct=impact*randomBetween(0.01,0.08); if(Math.random()<0.35)pct=-pct; }
+        if(marketWide) pct=impact*randomBetween(0.35,0.75)+randomBetween(-0.25,0.25);
+        else if(st.id===companyRow?.id) pct=impact*randomBetween(0.95,1.25);
+        else if(st.sector===targetSector) pct=impact*randomBetween(0.55,0.95);
+        else { pct=impact*randomBetween(0.005,0.045); if(Math.random()<0.40)pct=-pct; }
         upsert.run(roundId,st.id,money(Math.max(-4,Math.min(4,pct))));
       }
     }
@@ -587,7 +670,7 @@ function generateRoundNews(roundId){
     const normalize=db.prepare(`UPDATE round_impacts SET impact_pct=? WHERE round_id=? AND stock_id=?`);
     for(const x of impacts) normalize.run(money(Math.max(-cap,Math.min(cap,Number(x.impact_pct)))),roundId,x.stock_id);
     const lead=stories[0];
-    db.prepare(`UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?`).run(lead?.title||'Market briefing',`${stories.length} independent market stories generated automatically for this round.`,`${stories.length} stories · prices update automatically after trading`,roundId);
+    db.prepare(`UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?`).run(lead?.title||'Market briefing',`${stories.length} stories covering different sectors and stocks were generated automatically for this round.`,`${stories.length} stories · stock + sector impacts · prices update after trading`,roundId);
     return stories;
   });
   return tx();
