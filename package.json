@@ -5,8 +5,8 @@
   "description": "Stock Wars portfolio management event platform",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node sync-stocks.js && node server.js",
+    "dev": "node sync-stocks.js && node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
