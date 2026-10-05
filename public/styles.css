@@ -875,3 +875,94 @@ table th,table td{line-height:1.45}
   .playerUsesHostNewsUI .hostNewsContentV8 h3{font-size:16px!important}
   .playerUsesHostNewsUI .hostNewsContentV8 p{font-size:11px!important;line-height:1.55!important}
 }
+
+/* =========================================================
+   STOCK WARS V10 — PLAYER NEWS
+   Same newspaper presentation as Host, but player-facing stories
+   contain only the headline and full article body.
+   ========================================================= */
+.playerUsesHostNewsUI .hostNewsStoryV10{
+  display:grid!important;
+  grid-template-columns:54px 2px minmax(0,1fr)!important;
+  gap:12px!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  flex:none!important;
+  box-sizing:border-box!important;
+  align-items:stretch!important;
+  padding:16px 8px 16px 0!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #d8dee7!important;
+  border-radius:0!important;
+  background:#fff!important;
+  overflow:visible!important;
+}
+.playerUsesHostNewsUI .hostNewsStoryV10:last-child{border-bottom:0!important}
+.playerUsesHostNewsUI .hostNewsNoV10{
+  align-self:start!important;
+  text-align:center!important;
+  padding-top:2px!important;
+  font:950 46px/.9 Arial,Helvetica,sans-serif!important;
+  letter-spacing:-.06em!important;
+  color:#c8102e!important;
+}
+.playerUsesHostNewsUI .hostNewsStoryV10:nth-child(even) .hostNewsNoV10{color:#a9adb5!important}
+.playerUsesHostNewsUI .hostNewsDividerV10{
+  width:2px!important;
+  min-width:2px!important;
+  min-height:100%!important;
+  align-self:stretch!important;
+  background:#273241!important;
+}
+.playerUsesHostNewsUI .hostNewsContentV10{
+  min-width:0!important;
+  width:100%!important;
+  height:auto!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+.playerUsesHostNewsUI .hostNewsContentV10 h3{
+  display:block!important;
+  margin:0 0 8px!important;
+  padding:0!important;
+  color:#101722!important;
+  font-size:18px!important;
+  line-height:1.25!important;
+  font-weight:950!important;
+  letter-spacing:-.02em!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+}
+.playerUsesHostNewsUI .hostNewsContentV10 p{
+  display:block!important;
+  width:100%!important;
+  max-width:900px!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  color:#465467!important;
+  font-size:12px!important;
+  line-height:1.62!important;
+  white-space:pre-line!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+}
+@media(max-width:760px){
+  .playerUsesHostNewsUI .hostNewsStoryV10{
+    grid-template-columns:40px 2px minmax(0,1fr)!important;
+    gap:9px!important;
+    padding:14px 2px 14px 0!important;
+  }
+  .playerUsesHostNewsUI .hostNewsNoV10{font-size:38px!important}
+  .playerUsesHostNewsUI .hostNewsContentV10 h3{font-size:16px!important;line-height:1.28!important}
+  .playerUsesHostNewsUI .hostNewsContentV10 p{font-size:11px!important;line-height:1.58!important}
+}

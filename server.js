@@ -616,7 +616,7 @@ function buildNewsBody(entry, company, sector, sentiment, impact, marketWide){
     `Market participants are reassessing near-term earnings and growth expectations.`,
     `Investors will watch subsequent updates to determine whether the move is sustained.`
   ];
-  return chosen.join('\\n');
+  return chosen.join('\n');
 }
 function generateRoundNews(roundId){
   if(!AUTO_NEWS) return null;
