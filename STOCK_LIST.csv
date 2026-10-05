@@ -49,3 +49,53 @@ APOLLOHOSP,Apollo Hospitals,Healthcare,7600.0
 MAXHEALTH,Max Healthcare,Healthcare,1050.0
 INDIGO,InterGlobe Aviation,Aviation,5700.0
 ZOMATO,Eternal (formerly Zomato),Consumer Tech,300.0
+BAJFINANCE,Bajaj Finance,Banking,1000.0
+BAJAJFINSV,Bajaj Finserv,Banking,1750.0
+INDUSINDBK,IndusInd Bank,Banking,900.0
+BANKBARODA,Bank of Baroda,Banking,250.0
+PNB,Punjab National Bank,Banking,120.0
+CANBK,Canara Bank,Banking,105.0
+IDFCFIRSTB,IDFC First Bank,Banking,85.0
+FEDERALBNK,Federal Bank,Banking,330.0
+HDFCLIFE,HDFC Life Insurance,Insurance,525.0
+SBILIFE,SBI Life Insurance,Insurance,1730.0
+PERSISTENT,Persistent Systems,IT,5200.0
+COFORGE,Coforge,IT,1500.0
+MPHASIS,Mphasis,IT,3000.0
+OFSS,Oracle Financial Services Software,IT,11000.0
+BAJAJ-AUTO,Bajaj Auto,Automobile,10800.0
+TVSMOTOR,TVS Motor Company,Automobile,3000.0
+ASHOKLEY,Ashok Leyland,Automobile,140.0
+MOTHERSON,Samvardhana Motherson International,Automobile,160.0
+AUROPHARMA,Aurobindo Pharma,Pharma,1250.0
+LUPIN,Lupin,Pharma,2200.0
+TORNTPHARM,Torrent Pharmaceuticals,Pharma,4200.0
+ZYDUSLIFE,Zydus Lifesciences,Pharma,1100.0
+BIOCON,Biocon,Pharma,380.0
+GRASIM,Grasim Industries,Cement,3100.0
+SHREECEM,Shree Cement,Cement,26000.0
+AMBUJACEM,Ambuja Cements,Cement,550.0
+BRITANNIA,Britannia Industries,FMCG,6000.0
+DABUR,Dabur India,FMCG,500.0
+MARICO,Marico,FMCG,700.0
+TATACONSUM,Tata Consumer Products,FMCG,970.0
+JUBLFOOD,Jubilant FoodWorks,Retail,700.0
+PIDILITIND,Pidilite Industries,Consumer,2900.0
+MAZDOCK,Mazagon Dock Shipbuilders,Defence,2500.0
+COCHINSHIP,Cochin Shipyard,Defence,1600.0
+BDL,Bharat Dynamics,Defence,1600.0
+TATAPOWER,Tata Power,Power,400.0
+ADANIGREEN,Adani Green Energy,Power,1000.0
+ADANIPOWER,Adani Power,Power,600.0
+NHPC,NHPC,Power,90.0
+JSWENERGY,JSW Energy,Power,550.0
+VEDL,Vedanta,Metals,600.0
+SAIL,Steel Authority of India,Metals,110.0
+NMDC,NMDC,Mining,250.0
+CUMMINSIND,Cummins India,Industrials,4200.0
+ABB,ABB India,Industrials,6500.0
+DLF,DLF,Infrastructure,800.0
+INDUSTOWER,Indus Towers,Telecom,450.0
+IRCTC,Indian Railway Catering and Tourism Corporation,Travel & Rail,700.0
+JIOFIN,Jio Financial Services,Financial Services,220.0
+GODREJCP,Godrej Consumer Products,Consumer,1200.0
