@@ -12,17 +12,12 @@ function patch(file, from, to, name) {
   console.log(`[breaking-news] ${name}`);
 }
 
-// Database state used by the Breaking News interruption.
-patch(
-  SERVER,
+patch(SERVER,
   "ensureColumn('event_state','presentation_mode',\"INTEGER NOT NULL DEFAULT 0\");",
   "ensureColumn('event_state','presentation_mode',\"INTEGER NOT NULL DEFAULT 0\");\nensureColumn('event_state','breaking_active',\"INTEGER NOT NULL DEFAULT 0\");\nensureColumn('event_state','breaking_news_id',\"INTEGER\");",
-  'state columns'
-);
+  'state columns');
 
-// Add a separate generator. IMPORTANT: normal round impacts are deliberately
-// preserved. Only the displayed news row is replaced when Breaking News starts.
-const serverSource = fs.readFileSync(SERVER, 'utf8');
+let serverSource = fs.readFileSync(SERVER, 'utf8');
 if (!serverSource.includes('function generateBreakingNews(roundId)')) {
   const generator = String.raw`
 function generateBreakingNews(roundId){
@@ -33,10 +28,8 @@ function generateBreakingNews(roundId){
   const positive=Math.random()<0.5;
   const sign=positive?1:-1;
   let targetStock=null,targetSector=null,headline,body,impact;
-
   if(mode==='stock'){
-    targetStock=all[Math.floor(Math.random()*all.length)];
-    targetSector=targetStock.sector;
+    targetStock=all[Math.floor(Math.random()*all.length)]; targetSector=targetStock.sector;
     impact=Number((sign*(12+Math.random()*6)).toFixed(2));
     headline=(positive?'BREAKING: Strong development lifts ':'BREAKING: Major setback hits ')+targetStock.name;
     body=(positive?[
@@ -66,14 +59,10 @@ function generateBreakingNews(roundId){
       'Stocks across the sector are expected to experience a significant market reaction as investors digest the announcement.'
     ]).join('\\n');
   }
-
   const tx=db.transaction(()=>{
-    // market_news_events has one row per round. Replace the old normal news
-    // record with the Breaking News record, while round_impacts remains intact.
     db.prepare("DELETE FROM market_news_events WHERE round_id=?").run(roundId);
     const news=db.prepare("INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)")
       .run(roundId,'Breaking News',positive?'positive':'negative',mode.toUpperCase(),targetSector,headline,body,impact);
-
     const up=db.prepare("INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct");
     for(const s of all){
       let p;
@@ -87,12 +76,10 @@ function generateBreakingNews(roundId){
       }
       up.run(roundId,s.id,Number(Math.max(-18,Math.min(18,p)).toFixed(2)));
     }
-
     db.prepare("UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?")
       .run('BREAKING NEWS',headline+'\\n'+body,'High-impact '+mode+' event - all round impacts are applied at the end',roundId);
     db.prepare("UPDATE event_state SET breaking_active=1,breaking_news_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=1")
       .run(news.lastInsertRowid);
-
     return {newsId:Number(news.lastInsertRowid),headline,body,impactPct:impact,sentiment:positive?'positive':'negative',targetType:mode,target:mode==='stock'?targetStock.symbol:targetSector};
   });
   return tx();
@@ -105,32 +92,18 @@ function generateBreakingNews(roundId){
   console.log('[breaking-news] stock-or-sector generator');
 }
 
-// The Breaking News interruption itself always uses 1 minute reading + 2
-// minutes trading. Normal rounds retain their existing 2 + 3 minute timing.
-patch(
-  SERVER,
+patch(SERVER,
   'const tradeEnd=tradeStart+TRADE_SECONDS*1000;',
   'const tradeDuration=Number(st.breaking_active||0)===1?120:TRADE_SECONDS;\n    const tradeEnd=tradeStart+tradeDuration*1000;',
-  'breaking trade duration'
-);
+  'breaking trade duration');
 
-// Keep all accumulated impacts until the final price application. This means
-// trades made during the first normal trading minute are valued using the old
-// prices, while normal-news + breaking-news impacts are applied together only
-// when the interrupted trading window finally closes.
-patch(
-  SERVER,
+patch(SERVER,
   "db.prepare(`UPDATE rounds SET status='applied',applied_at=CURRENT_TIMESTAMP,locked_at=COALESCE(locked_at,CURRENT_TIMESTAMP) WHERE id=?`).run(roundId);",
   "db.prepare(`UPDATE rounds SET status='applied',applied_at=CURRENT_TIMESTAMP,locked_at=COALESCE(locked_at,CURRENT_TIMESTAMP) WHERE id=?`).run(roundId);\n    db.prepare(`UPDATE event_state SET breaking_active=0,breaking_news_id=NULL WHERE id=1`).run();",
-  'clear breaking state'
-);
+  'clear breaking state');
 
-// Breaking News can ONLY be triggered after the first 60 seconds of the
-// normal trading phase. Triggering it interrupts the current trading window,
-// replaces the visible news with the Breaking News item, and starts a fresh
-// 60-second reading + 120-second trading window.
-let currentServer = fs.readFileSync(SERVER, 'utf8');
-if (!currentServer.includes('/api/admin/breaking-news')) {
+serverSource = fs.readFileSync(SERVER, 'utf8');
+if (!serverSource.includes('/api/admin/breaking-news')) {
   const anchor='app.post("/api/admin/lock-round", requireAdmin, (req,res)=>{';
   const endpoint=`app.post("/api/admin/breaking-news", requireAdmin, (req,res)=>{
   const st=state();
@@ -154,23 +127,20 @@ if (!currentServer.includes('/api/admin/breaking-news')) {
 });
 
 `;
-  if(!currentServer.includes(anchor)) throw new Error('Breaking News endpoint anchor missing: lock-round');
-  fs.writeFileSync(SERVER,currentServer.replace(anchor,endpoint+anchor));
+  if(!serverSource.includes(anchor)) throw new Error('Breaking News endpoint anchor missing: lock-round');
+  fs.writeFileSync(SERVER,serverSource.replace(anchor,endpoint+anchor));
   console.log('[breaking-news] endpoint');
 }
 
-patch(
-  SERVER,
+patch(SERVER,
   "presentation_mode=0,cost_basis_method='FIFO',updated_at=CURRENT_TIMESTAMP WHERE id=1",
   "presentation_mode=0,cost_basis_method='FIFO',breaking_active=0,breaking_news_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=1",
-  'reset breaking state'
-);
+  'reset breaking state');
 
-// Host UI: the button is available only after the first normal trading minute.
 let appSource = fs.readFileSync(APP, 'utf8');
 if (!appSource.includes('onclick="triggerBreakingNews()"')) {
   const old='<button class="btn danger" onclick="lockRound()" ${STATE.phase!==\'trading\'?\'disabled\':\'\'}>Force Lock</button><button class="btn secondary resetBtn" onclick="resetEvent()">Reset Event</button>';
-  const neu='<button class="btn danger" onclick="lockRound()" ${STATE.phase!==\'trading\'?\'disabled\':\'\'}>Force Lock</button><button id="breakingNewsBtn" class="btn breakingBtn" onclick="triggerBreakingNews()" ${!STATE.current_round||STATE.phase!==\'trading\'||STATE.event_status!==\'live\'||STATE.breaking_active?'disabled':''}>⚡ Breaking News</button><button class="btn secondary resetBtn" onclick="resetEvent()">Reset Event</button>';
+  const neu="<button class=\"btn danger\" onclick=\"lockRound()\" ${STATE.phase!==\'trading\'?\'disabled\':\'\'}>Force Lock</button><button id=\"breakingNewsBtn\" class=\"btn breakingBtn\" onclick=\"triggerBreakingNews()\" ${!STATE.current_round||STATE.phase!==\'trading\'||STATE.event_status!==\'live\'||STATE.breaking_active?'disabled':''}>⚡ Breaking News</button><button class=\"btn secondary resetBtn\" onclick=\"resetEvent()\">Reset Event</button>";
   patch(APP,old,neu,'host button');
 }
 if (!fs.readFileSync(APP,'utf8').includes('async function triggerBreakingNews()')) {
@@ -178,25 +148,18 @@ if (!fs.readFileSync(APP,'utf8').includes('async function triggerBreakingNews()'
   patch(APP,'async function resetEvent(){',fn+'async function resetEvent(){','client action');
 }
 
-// Timer durations: normal 2m/3m, Breaking News 1m/2m.
-patch(
-  APP,
+patch(APP,
   "const total=STATE?.phase==='news'?120000:180000;",
   "const total=STATE?.phase==='news'?(STATE?.breaking_active?60000:120000):STATE?.phase==='trading'?(STATE?.breaking_active?120000:180000):180000;",
-  'timer duration'
-);
+  'timer duration');
 
-// Keep the Breaking News button disabled during the first trading minute and
-// enable it automatically when the minute has elapsed.
 if (!fs.readFileSync(APP,'utf8').includes('function syncBreakingNewsButton()')) {
   const fn="function syncBreakingNewsButton(){const b=document.getElementById('breakingNewsBtn');if(!b)return;const elapsed=Date.now()-Number(STATE?.phase_started_at||0);b.disabled=!(STATE?.current_round&&STATE?.phase==='trading'&&STATE?.event_status==='live'&&!STATE?.breaking_active&&elapsed>=60000)}\n";
   patch(APP,'function syncHostTimer(){',fn+'function syncHostTimer(){','breaking button timer');
 }
-patch(
-  APP,
+patch(APP,
   "function syncHostTimer(){const el=document.getElementById('eventTimerHost');if(el){el.textContent=timerText();setTimeout(syncHostTimer,250)}}",
   "function syncHostTimer(){const el=document.getElementById('eventTimerHost');if(el){el.textContent=timerText();syncBreakingNewsButton();setTimeout(syncHostTimer,250)}}",
-  'breaking button refresh'
-);
+  'breaking button refresh');
 
 console.log('[breaking-news] complete');
