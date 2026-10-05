@@ -12,31 +12,17 @@ function patch(file, from, to, name) {
   console.log(`[breaking-news] ${name}`);
 }
 
-// Database columns used by Breaking News.
-patch(
-  SERVER,
-  "ensureColumn('event_state','presentation_mode',\"INTEGER NOT NULL DEFAULT 0\");",
-  "ensureColumn('event_state','presentation_mode',\"INTEGER NOT NULL DEFAULT 0\");\nensureColumn('event_state','breaking_active',\"INTEGER NOT NULL DEFAULT 0\");\nensureColumn('event_state','breaking_news_id',\"INTEGER\");",
-  'state columns'
-);
+patch(SERVER,"ensureColumn('event_state','presentation_mode',\"INTEGER NOT NULL DEFAULT 0\");","ensureColumn('event_state','presentation_mode',\"INTEGER NOT NULL DEFAULT 0\");\nensureColumn('event_state','breaking_active',\"INTEGER NOT NULL DEFAULT 0\");\nensureColumn('event_state','breaking_news_id',\"INTEGER\");",'state columns');
 
-// Replace the generator on every startup so existing deployments also receive
-// the Stock-or-Sector behaviour without requiring a manual server.js edit.
 const source = fs.readFileSync(SERVER, 'utf8');
 const generator = String.raw`function generateBreakingNews(roundId){
   const all=db.prepare("SELECT id,name,symbol,sector FROM stocks ORDER BY id").all();
   if(!all.length) throw Error('No stocks available.');
-
   const sectors=[...new Set(all.map(s=>s.sector).filter(Boolean))];
   const mode=Math.random()<0.5?'stock':'sector';
   const positive=Math.random()<0.5;
   const sign=positive?1:-1;
-
-  let targetStock=null;
-  let targetSector=null;
-  let headline;
-  let body;
-  let representativeImpact;
+  let targetStock=null,targetSector=null,headline,body,representativeImpact;
 
   if(mode==='stock'){
     targetStock=all[Math.floor(Math.random()*all.length)];
@@ -56,7 +42,6 @@ const generator = String.raw`function generateBreakingNews(roundId){
     ]).join('\\n');
   } else {
     targetSector=sectors[Math.floor(Math.random()*sectors.length)];
-    const sectorStocks=all.filter(s=>s.sector===targetSector);
     representativeImpact=money(sign*(8+Math.random()*4));
     headline=(positive?'BREAKING: Strong developments lift ':'BREAKING: Major setback hits ')+targetSector+' sector';
     body=(positive?[
@@ -75,9 +60,7 @@ const generator = String.raw`function generateBreakingNews(roundId){
   const tx=db.transaction(()=>{
     const news=db.prepare("INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)")
       .run(roundId,'Breaking News',positive?'positive':'negative',mode.toUpperCase(),targetSector,headline,body,representativeImpact);
-
     const up=db.prepare("INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct");
-
     for(const s of all){
       let p;
       if(mode==='stock'){
@@ -90,24 +73,12 @@ const generator = String.raw`function generateBreakingNews(roundId){
       }
       up.run(roundId,s.id,money(Math.max(-18,Math.min(18,p))));
     }
-
     db.prepare("UPDATE rounds SET news_title='BREAKING NEWS',news_body=?,news_impact_note=? WHERE id=?")
-      .run(headline+'\\n'+body,`High-impact ${mode} event · price applied after breaking-news trading window`,roundId);
-
+      .run(headline+'\\n'+body,'High-impact '+mode+' event - price applied after breaking-news trading window',roundId);
     db.prepare("UPDATE event_state SET breaking_active=1,breaking_news_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=1")
       .run(news.lastInsertRowid);
-
-    return {
-      newsId:Number(news.lastInsertRowid),
-      headline,
-      body,
-      impactPct:representativeImpact,
-      sentiment:positive?'positive':'negative',
-      targetType:mode,
-      target:mode==='stock'?targetStock.symbol:targetSector
-    };
+    return {newsId:Number(news.lastInsertRowid),headline,body,impactPct:representativeImpact,sentiment:positive?'positive':'negative',targetType:mode,target:mode==='stock'?targetStock.symbol:targetSector};
   });
-
   return tx();
 }`;
 
@@ -121,19 +92,8 @@ if(currentGenerator !== generator) {
   console.log('[breaking-news] stock-or-sector generator');
 }
 
-patch(
-  SERVER,
-  "db.prepare(`UPDATE rounds SET status='applied',applied_at=CURRENT_TIMESTAMP,locked_at=COALESCE(locked_at,CURRENT_TIMESTAMP) WHERE id=?`).run(roundId);",
-  "db.prepare(`UPDATE rounds SET status='applied',applied_at=CURRENT_TIMESTAMP,locked_at=COALESCE(locked_at,CURRENT_TIMESTAMP) WHERE id=?`).run(roundId);\n    db.prepare(`UPDATE event_state SET breaking_active=0,breaking_news_id=NULL WHERE id=1`).run();",
-  'clear breaking state'
-);
-
-patch(
-  SERVER,
-  'const tradeEnd=tradeStart+TRADE_SECONDS*1000;',
-  'const tradeDuration=Number(st.breaking_active||0)===1?120:TRADE_SECONDS;\n    const tradeEnd=tradeStart+tradeDuration*1000;',
-  'breaking trade duration'
-);
+patch(SERVER,"db.prepare(`UPDATE rounds SET status='applied',applied_at=CURRENT_TIMESTAMP,locked_at=COALESCE(locked_at,CURRENT_TIMESTAMP) WHERE id=?`).run(roundId);","db.prepare(`UPDATE rounds SET status='applied',applied_at=CURRENT_TIMESTAMP,locked_at=COALESCE(locked_at,CURRENT_TIMESTAMP) WHERE id=?`).run(roundId);\n    db.prepare(`UPDATE event_state SET breaking_active=0,breaking_news_id=NULL WHERE id=1`).run();",'clear breaking state');
+patch(SERVER,'const tradeEnd=tradeStart+TRADE_SECONDS*1000;','const tradeDuration=Number(st.breaking_active||0)===1?120:TRADE_SECONDS;\n    const tradeEnd=tradeStart+tradeDuration*1000;','breaking trade duration');
 
 if(!fs.readFileSync(SERVER,'utf8').includes('/api/admin/breaking-news')){
   const sourceServer=fs.readFileSync(SERVER,'utf8');
@@ -157,11 +117,5 @@ if(!fs.readFileSync(APP,'utf8').includes('async function triggerBreakingNews()')
   console.log('[breaking-news] client action');
 }
 
-patch(
-  APP,
-  "const total=STATE?.phase==='news'?120000:180000;",
-  "const total=STATE?.phase==='news'?(STATE?.breaking_active?60000:120000):STATE?.phase==='trading'?(STATE?.breaking_active?120000:180000):180000;",
-  'timer duration'
-);
-
+patch(APP,"const total=STATE?.phase==='news'?120000:180000;","const total=STATE?.phase==='news'?(STATE?.breaking_active?60000:120000):STATE?.phase==='trading'?(STATE?.breaking_active?120000:180000):180000;",'timer duration');
 console.log('[breaking-news] complete');
