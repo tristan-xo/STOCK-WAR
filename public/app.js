@@ -140,26 +140,24 @@ async function playerPage(){
   const p=d.portfolio,r=d.round;
   const can=r?.status==='trading'&&STATE.event_status==='live'&&STATE.phase==='trading'&&d.player?.status!=='suspended';
 
-  /* V14: the Player page deliberately does NOT use round.news_title/news_body
-     for the top hero. Those fields are only the old round summary. The first
-     visible section is the actual multi-story news feed from newsEvents. */
+  /* Stock Wars Daily front page for the live round news feed. */
   const news=d.newsEvents||[];
-  shell(`<section class="playerCurrentNewsV13">
-    <div class="playerCurrentNewsHeaderV13">
-      <div>
-        <span class="eyebrow">CURRENT NEWS</span>
-        <h2>Round ${STATE.current_round||'—'} · ${news.length} stories</h2>
-      </div>
-      <div class="playerCurrentNewsStateV13"><div class="stateIcon">${STATE.phase==='news'?icon('news'):STATE.phase==='trading'?icon('chart'):'•'}</div><div><b>${STATE.phase==='news'?'Market Briefing':STATE.phase==='trading'?'Market Open':'Standby'}</b><small>${STATE.event_status==='paused'?'Emergency pause active':can?'Orders accepted':'Waiting for market'}</small></div></div>
-    </div>
-    ${news.length ? `<div class="playerCurrentNewsListV13">${news.map((n,i)=>`<article class="playerCurrentNewsStoryV13">
-      <div class="playerCurrentNewsNoV13">${i+1}</div>
-      <div class="playerCurrentNewsDividerV13"></div>
-      <div class="playerCurrentNewsContentV13">
-        <h3>${esc(n.headline)}</h3>
-        <p>${esc(String(n.body||'').replace(/\\n/g,'\n'))}</p>
-      </div>
-    </article>`).join('')}</div>` : '<div class="empty">News will appear automatically when the round starts.</div>'}
+  const leadStory=news[0];
+  const leftStories=news.slice(1,3);
+  const sideStories=news.slice(3,5);
+  const moreStories=news.slice(5);
+  const paperGridClass=news.length===1?'newsroomGridSolo':news.length<4?'newsroomGridPair':'newsroomGrid';
+  const paperBody=n=>esc(String(n.body||'').replace(/\s+/g,' ').trim());
+  const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><span class='newsroomArtGlyph'>${i%3===0?'▥':i%3===1?'◌':'◆'}</span><small>${esc(n.target_sector||'MARKET-WIDE')}</small></div>`;
+  const paperStory=(n,i)=>`<article class='newsroomStory'>${paperArt(n,i)}<div class='newsroomStoryText'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div><h4>${esc(n.headline)}</h4><p>${paperBody(n)}</p></div></article>`;
+  shell(`<section class='newsroomPaper'>
+    <header class='newsroomMasthead'><div class='newsroomMark'>SW</div><div class='newsroomBrand'><h2>STOCK WARS DAILY</h2><small>PORTFOLIO MANAGEMENT · MARKET EDITION</small></div><div class='newsroomRound'><b>ROUND ${STATE.current_round||'—'}</b><span>${STATE.event_status==='paused'?'BRIEFING PAUSED':STATE.phase==='news'?'MARKET BRIEFING':STATE.phase==='trading'?'MARKET OPEN':'BETWEEN ROUNDS'}</span></div></header>
+    <div class='newsroomNav'><span>TOP STORIES</span><span>MARKETS</span><span>COMPANIES</span><span>SECTORS</span><span>${news.length} ARTICLES</span></div>
+    ${leadStory?`<div class='${paperGridClass}'>
+      <aside class='newsroomRail newsroomLeft'>${leftStories.map((n,i)=>paperStory(n,i+1)).join('')}</aside>
+      <article class='newsroomLead'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(leadStory.target_sector||'MARKET-WIDE')}</span></div><h3>${esc(leadStory.headline)}</h3><p class='newsroomDek'>${paperBody(leadStory)}</p>${paperArt(leadStory,0,true)}<div class='newsroomByline'>ROUND ${STATE.current_round||'—'} · STOCK WARS NEWSROOM</div></article>
+      <aside class='newsroomRail newsroomRight'>${sideStories.map((n,i)=>paperStory(n,i+3)).join('')}</aside>
+    </div>${moreStories.length?`<section class='newsroomMore'><h3>MORE FROM THE MARKET</h3><div class='newsroomMoreGrid'>${moreStories.map((n,i)=>paperStory(n,i+5)).join('')}</div></section>`:''}`:'<div class="empty newsroomEmpty">News will appear automatically when the round starts.</div>'}
   </section>
   <div class="kpis"><div class="kpi"><label>Portfolio Value</label><div class="value">${money(p.total)}</div><small>${pnl(p.profit)} overall</small></div><div class="kpi"><label>Invested</label><div class="value">${money(p.marketValue)}</div><small>Current market value</small></div><div class="kpi"><label>Available Cash</label><div class="value">${money(p.cash)}</div><small>Ready to deploy</small></div><div class="kpi"><label>Return</label><div class="value">${p.profit>=0?'+':''}${(p.profit/200000*100).toFixed(2)}%</div><small>vs ₹2,00,000 start</small></div></div>
   <div class="grid"><div class="card c8"><div class="sectionHead"><div><span class="eyebrow">MARKET</span><h2>Stocks</h2></div><div class="marketTools"><div class="search"><span>${icon('search')}</span><input id="stockSearch" placeholder="Search stocks or sectors"></div>${can?'<span class="pill live">MARKET OPEN</span>':'<span class="pill">MARKET CLOSED</span>'}</div></div><div id="market" class="stockGrid"></div></div>
