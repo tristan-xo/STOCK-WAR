@@ -139,8 +139,8 @@ patch(SERVER,
 
 let appSource = fs.readFileSync(APP, 'utf8');
 if (!appSource.includes('onclick="triggerBreakingNews()"')) {
-  const old='<button class="btn danger" onclick="lockRound()" ${STATE.phase!==\'trading\'?\'disabled\':\'\'}>Force Lock</button><button class="btn secondary resetBtn" onclick="resetEvent()">Reset Event</button>';
-  const neu="<button class=\"btn danger\" onclick=\"lockRound()\" ${STATE.phase!==\'trading\'?\'disabled\':\'\'}>Force Lock</button><button id=\"breakingNewsBtn\" class=\"btn breakingBtn\" onclick=\"triggerBreakingNews()\" ${!STATE.current_round||STATE.phase!==\'trading\'||STATE.event_status!==\'live\'||STATE.breaking_active?'disabled':''}>⚡ Breaking News</button><button class=\"btn secondary resetBtn\" onclick=\"resetEvent()\">Reset Event</button>";
+  const old='<button class="btn secondary resetBtn" onclick="resetEvent()">Reset Event</button>';
+  const neu='<button id="breakingNewsBtn" class="btn breakingBtn" onclick="triggerBreakingNews()" ${!STATE.current_round||STATE.phase!==\'trading\'||STATE.event_status!==\'live\'||STATE.breaking_active?\'disabled\':\'\'}>⚡ Breaking News</button>'+old;
   patch(APP,old,neu,'host button');
 }
 if (!fs.readFileSync(APP,'utf8').includes('async function triggerBreakingNews()')) {
