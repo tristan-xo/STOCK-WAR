@@ -1170,3 +1170,53 @@ table th,table td{line-height:1.45}
 .auth .error{border-color:#fecaca;background:#fff1f0;color:#991b1b}
 .auth .authback .authlink{margin-left:4px}
 @media(max-width:600px){.auth{padding:24px 14px}.auth .brand{margin-bottom:24px;gap:12px}.auth .logo{width:54px;height:54px;border-radius:15px;font-size:18px}.auth .title{font-size:31px}.authbox{padding:24px 20px 26px;border-radius:20px}.authmode.active{font-size:24px}.authmode:not(.active){font-size:15px}.loginheading{margin:20px 0 16px}.loginheading p{font-size:14px}.authform input{min-height:58px;border-radius:16px;padding:0 16px}.auth .btn{min-height:54px;font-size:15px}.create-account{min-height:54px;font-size:15px}}
+
+/* Stock Wars Daily newspaper layout for player news */
+.newsroomPaper{width:100%;margin:0 0 24px;padding:0 26px 22px;box-sizing:border-box;overflow:hidden;background:#fffdf8;color:#172033;border:1px solid #d8dee7;border-radius:8px;box-shadow:0 12px 32px rgba(15,23,42,.12);font-family:Georgia,'Times New Roman',serif}
+.newsroomMasthead{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:14px;padding:20px 0 14px;border-bottom:3px double #172033}
+.newsroomMark{display:grid;place-items:center;width:52px;height:52px;background:#102544;color:#fff;font:900 18px/1 Arial,sans-serif;letter-spacing:-.08em}
+.newsroomBrand{text-align:center}
+.newsroomBrand h2{margin:0;color:#102544;font:900 clamp(28px,4vw,48px)/.95 Georgia,'Times New Roman',serif;letter-spacing:-.035em}
+.newsroomBrand small{display:block;margin-top:6px;color:#667384;font:800 9px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.18em}
+.newsroomRound{display:flex;flex-direction:column;gap:4px;align-items:flex-end;color:#172033;font:800 10px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.08em;text-align:right}
+.newsroomRound b{font-size:12px;color:#102544}
+.newsroomNav{display:flex;justify-content:center;gap:0;margin-bottom:20px;padding:9px 0;border-bottom:1px solid #aeb8c4;color:#273241;font:800 10px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.1em}
+.newsroomNav span{padding:0 14px;border-right:1px solid #cbd2da;white-space:nowrap}
+.newsroomNav span:last-child{margin-left:auto;padding-right:0;border:0;color:#667384}
+.newsroomGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.25fr) minmax(0,1fr);gap:18px;align-items:start}
+.newsroomGridSolo{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.newsroomGridPair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.15fr);gap:18px;align-items:start}
+.newsroomGridSolo .newsroomLeft,.newsroomGridSolo .newsroomRight,.newsroomGridPair .newsroomRight{display:none}
+.newsroomRail{display:flex;flex-direction:column;gap:15px;min-width:0}
+.newsroomLeft{padding-right:16px;border-right:1px solid #cbd2da}
+.newsroomRight{padding-left:16px;border-left:1px solid #cbd2da}
+.newsroomLead{min-width:0}
+.newsroomMeta{display:flex;flex-wrap:wrap;gap:7px 11px;margin-bottom:8px;color:#68758a;font:800 9px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.newsroomMeta span:first-child{color:#102544}
+.newsroomLead h3{margin:0 0 8px;color:#111827;font:900 clamp(26px,3.3vw,42px)/1.05 Georgia,'Times New Roman',serif;letter-spacing:-.025em}
+.newsroomDek{margin:0;color:#39465a;font:16px/1.5 Georgia,'Times New Roman',serif}
+.newsroomArt{position:relative;display:grid;place-items:center;min-height:92px;overflow:hidden;background:linear-gradient(145deg,#d9e3ed,#8ea2b7 56%,#344a65);color:#fff}
+.newsroomArt::before{content:'';position:absolute;inset:34% 0 0;background:linear-gradient(180deg,transparent,rgba(12,27,48,.45)),repeating-linear-gradient(90deg,transparent 0 8%,rgba(255,255,255,.16) 8% 8.7%)}
+.newsroomArt::after{content:'';position:absolute;left:-8%;right:-8%;top:55%;height:2px;background:rgba(255,255,255,.68);transform:rotate(-8deg)}
+.newsroomArt1{background:linear-gradient(145deg,#e5e9e8,#91a4af 55%,#354c5a)}
+.newsroomArt2{background:linear-gradient(145deg,#e7e1d9,#b0a28f 54%,#5b5144)}
+.newsroomArt3{background:linear-gradient(145deg,#e2e8e6,#8ca6a3 56%,#334b4b)}
+.newsroomArtGlyph{position:relative;z-index:1;display:grid;place-items:center;width:42px;height:34px;border-radius:3px;background:rgba(255,255,255,.88);color:#314967;font:900 22px/1 Arial,sans-serif}
+.newsroomArt small{position:absolute;z-index:1;left:9px;bottom:7px;color:#fff;font:800 8px/1.1 Arial,sans-serif;letter-spacing:.12em;text-shadow:0 1px 3px #142238}
+.newsroomArtFeatured{min-height:210px;margin:16px 0 12px}
+.newsroomArtFeatured .newsroomArtGlyph{width:58px;height:48px;font-size:30px}
+.newsroomByline{padding-top:9px;border-top:1px solid #cbd2da;color:#68758a;font:800 9px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.1em}
+.newsroomStory{display:grid;grid-template-columns:minmax(74px,.8fr) minmax(0,1.25fr);gap:10px;min-width:0;padding:0 0 14px;border-bottom:1px solid #cbd2da}
+.newsroomStory:last-child{padding-bottom:0;border-bottom:0}
+.newsroomStory .newsroomArt{min-height:92px;align-self:start}
+.newsroomStoryText{min-width:0}
+.newsroomStoryText h4{margin:0 0 6px;color:#111827;font:800 16px/1.13 Georgia,'Times New Roman',serif;overflow-wrap:anywhere}
+.newsroomStoryText p{margin:0;color:#4b5563;font:12px/1.42 Georgia,'Times New Roman',serif;overflow-wrap:anywhere}
+.newsroomStory .newsroomMeta{gap:5px;margin-bottom:5px;font-size:8px}
+.newsroomMore{margin-top:18px;padding-top:13px;border-top:3px double #172033}
+.newsroomMore>h3{margin:0 0 12px;color:#102544;font:900 27px/1 Georgia,'Times New Roman',serif;letter-spacing:.01em}
+.newsroomMoreGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.newsroomMoreGrid .newsroomStory{grid-template-columns:minmax(78px,.8fr) minmax(0,1.2fr)}
+.newsroomEmpty{margin:12px 0;padding:42px 12px;color:#667384;background:#f7f8fa;border:1px dashed #cbd2da;text-align:center}
+@media(max-width:1050px){.newsroomPaper{padding-right:18px;padding-left:18px}.newsroomGrid{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}.newsroomGrid:not(.newsroomGridSolo):not(.newsroomGridPair) .newsroomRight{grid-column:1/-1;padding:14px 0 0;border-top:1px solid #cbd2da;border-left:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.newsroomGrid:not(.newsroomGridSolo):not(.newsroomGridPair) .newsroomRight .newsroomStory{border:0;padding:0}.newsroomMoreGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.newsroomPaper{padding:0 14px 16px;border-radius:6px}.newsroomMasthead{grid-template-columns:42px minmax(0,1fr);gap:9px;padding:15px 0 11px}.newsroomMark{width:40px;height:40px;font-size:14px}.newsroomBrand h2{font-size:clamp(23px,7vw,34px)}.newsroomBrand small{font-size:7px;letter-spacing:.1em}.newsroomRound{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center;padding:7px 0 0;border-top:1px solid #d8dee7;text-align:left}.newsroomRound span{font-size:9px}.newsroomNav{justify-content:flex-start;overflow-x:auto;margin:0 -14px 14px;padding:9px 10px}.newsroomNav span{padding:0 9px;font-size:8px}.newsroomGrid,.newsroomGridPair,.newsroomGridSolo{grid-template-columns:minmax(0,1fr);gap:14px}.newsroomGrid .newsroomLead,.newsroomGridPair .newsroomLead,.newsroomGridSolo .newsroomLead{order:-1}.newsroomLeft,.newsroomRight{display:grid;grid-template-columns:minmax(0,1fr);padding:12px 0 0;border-top:1px solid #cbd2da;border-right:0;border-left:0}.newsroomGrid:not(.newsroomGridSolo):not(.newsroomGridPair) .newsroomRight{grid-template-columns:minmax(0,1fr)}.newsroomGrid:not(.newsroomGridSolo):not(.newsroomGridPair) .newsroomRight .newsroomStory{border-bottom:1px solid #cbd2da;padding-bottom:12px}.newsroomLead h3{font-size:29px}.newsroomDek{font-size:15px}.newsroomArtFeatured{min-height:160px}.newsroomMore>h3{font-size:23px}.newsroomMoreGrid{grid-template-columns:minmax(0,1fr);gap:13px}.newsroomMoreGrid .newsroomStory{grid-template-columns:minmax(74px,.8fr) minmax(0,1.2fr)}}
