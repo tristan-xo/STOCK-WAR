@@ -1359,14 +1359,23 @@ label{color:#514637!important}
 .newsroomBreakingTag{position:absolute;z-index:2;top:13px;left:0;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;background:#1a2740;color:#fffdf7;font:900 11px/1 Arial,Helvetica,sans-serif;letter-spacing:.13em}
 .newsroomBreakingTag::after{content:'';position:absolute;left:100%;top:0;border-top:17px solid #1a2740;border-right:13px solid transparent}
 .newsroomBreakingTag i{width:8px;height:8px;border-radius:50%;background:#d2a94e;box-shadow:0 0 0 0 rgba(210,169,78,.55)}
-.newsroomBreakingEnter .newsroomBreakingMedia{animation:breakingMediaReveal .72s cubic-bezier(.2,.75,.25,1) both}
-.newsroomBreakingEnter .newsroomBreakingMedia .newsroomPhoto{animation:breakingPhotoReveal .95s cubic-bezier(.2,.75,.25,1) both}
-.newsroomBreakingEnter .newsroomBreakingTag{animation:breakingTagReveal .45s .38s ease-out both}
-.newsroomBreakingEnter .newsroomBreakingTag i{animation:breakingAlertPulse .8s .7s ease-out 2}
-.newsroomBreakingEnter .newsroomMeta,.newsroomBreakingEnter h3,.newsroomBreakingEnter .newsroomDek{animation:breakingCopyReveal .55s .22s ease-out both}
-@keyframes breakingMediaReveal{from{opacity:0;clip-path:inset(0 0 100% 0);transform:translateY(12px)}to{opacity:1;clip-path:inset(0);transform:translateY(0)}}
-@keyframes breakingPhotoReveal{from{transform:scale(1.08)}to{transform:scale(1)}}
-@keyframes breakingTagReveal{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
-@keyframes breakingAlertPulse{50%{box-shadow:0 0 0 7px rgba(210,169,78,0)}}
-@keyframes breakingCopyReveal{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.newsroomBreakingEnter .newsroomBreakingMedia,.newsroomBreakingEnter .newsroomBreakingMedia .newsroomPhoto,.newsroomBreakingEnter .newsroomBreakingTag,.newsroomBreakingEnter .newsroomBreakingTag i,.newsroomBreakingEnter .newsroomMeta,.newsroomBreakingEnter h3,.newsroomBreakingEnter .newsroomDek{animation:none!important;clip-path:none!important;transform:none!important;opacity:1!important}}
+.newsroomBreakingEnter .newsroomBreakingMedia{animation:breakingMediaGlitch 1.05s steps(1,end) both}
+.newsroomBreakingEnter .newsroomBreakingMedia::before,.newsroomBreakingEnter .newsroomBreakingMedia::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none}
+.newsroomBreakingEnter .newsroomBreakingMedia::before{background:repeating-linear-gradient(0deg,rgba(255,253,247,.2) 0 1px,transparent 1px 5px),linear-gradient(90deg,rgba(147,99,34,.55),transparent 20% 80%,rgba(130,45,26,.5));mix-blend-mode:screen;animation:breakingScanBurst 1.05s steps(1,end) both}
+.newsroomBreakingEnter .newsroomBreakingMedia::after{background:linear-gradient(transparent 0 18%,rgba(210,169,78,.86) 18% 21%,transparent 21% 47%,rgba(26,39,64,.82) 47% 53%,transparent 53% 76%,rgba(187,128,48,.78) 76% 79%,transparent 79%);mix-blend-mode:screen;animation:breakingSignalBands 1.05s steps(1,end) both}
+.newsroomBreakingEnter .newsroomBreakingMedia .newsroomPhoto{animation:breakingPhotoGlitch 1.05s steps(1,end) both}
+.newsroomBreakingEnter .newsroomBreakingTag{animation:breakingTagSlap .62s .16s cubic-bezier(.15,.85,.25,1) both}
+.newsroomBreakingEnter .newsroomBreakingTag i{animation:breakingAlertPulse .62s .32s ease-out 2}
+.newsroomBreakingEnter .newsroomMeta{animation:breakingCopyGlitch .7s .16s steps(1,end) both}
+.newsroomBreakingEnter h3{animation:breakingCopyGlitch .82s .24s steps(1,end) both}
+.newsroomBreakingEnter .newsroomDek{animation:breakingCopySettle .56s .48s ease-out both}
+@keyframes breakingMediaGlitch{0%{opacity:0;transform:translateX(-16px) scale(.98);filter:contrast(1.8) sepia(.5)}8%{opacity:1;transform:translateX(9px) skewX(-2deg);filter:contrast(1.6) saturate(1.7)}14%{transform:translateX(-7px) skewX(2deg);filter:contrast(1.4) sepia(.45)}21%{transform:translateX(4px);filter:brightness(1.25) saturate(1.5)}29%{transform:translateX(-2px);filter:contrast(1.2)}42%{transform:translateX(0);filter:none}100%{opacity:1;transform:none;filter:none}}
+@keyframes breakingPhotoGlitch{0%{transform:scale(1.1) translateX(0);filter:sepia(.55) saturate(1.8) contrast(1.35)}10%{transform:scale(1.1) translateX(-10px);filter:sepia(.7) saturate(2.2) contrast(1.5)}16%{transform:scale(1.08) translateX(8px);filter:sepia(.35) saturate(1.8)}23%{transform:scale(1.06) translateX(-4px);filter:contrast(1.35) saturate(1.35)}35%{transform:scale(1.04) translateX(2px);filter:contrast(1.18)}58%{transform:scale(1.02);filter:saturate(1.08)}100%{transform:scale(1);filter:none}}
+@keyframes breakingScanBurst{0%,38%{opacity:0}8%{opacity:.95;transform:translateY(-12px)}12%{opacity:.18;transform:translateY(9px)}17%{opacity:.82;transform:translateY(-4px)}23%{opacity:.1;transform:translateY(5px)}29%{opacity:.6;transform:translateY(0)}38%,100%{opacity:0;transform:none}}
+@keyframes breakingSignalBands{0%,100%{opacity:0;transform:translateX(0)}9%{opacity:.95;transform:translateX(11px)}13%{opacity:.18;transform:translateX(-8px)}19%{opacity:.9;transform:translateX(6px)}25%{opacity:.12;transform:translateX(-3px)}33%{opacity:.5;transform:translateX(0)}39%{opacity:0}}
+@keyframes breakingTagSlap{0%{opacity:0;transform:translateX(-30px) skewX(-12deg)}55%{opacity:1;transform:translateX(5px) skewX(3deg)}75%{transform:translateX(-2px) skewX(-1deg)}100%{opacity:1;transform:none}}
+@keyframes breakingAlertPulse{50%{box-shadow:0 0 0 9px rgba(210,169,78,0)}}
+@keyframes breakingCopyGlitch{0%{opacity:0;transform:translateX(-18px) skewX(-4deg)}22%{opacity:1;transform:translateX(6px) skewX(2deg);text-shadow:-3px 0 rgba(147,99,34,.82),3px 0 rgba(130,45,26,.72)}39%{transform:translateX(-4px);text-shadow:2px 0 rgba(147,99,34,.65),-2px 0 rgba(130,45,26,.55)}58%{transform:translateX(2px);text-shadow:none}100%{opacity:1;transform:none;text-shadow:none}}
+@keyframes breakingCopySettle{0%{opacity:0;transform:translateY(10px)}60%{opacity:1;transform:translateY(-2px)}100%{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.newsroomBreakingEnter .newsroomBreakingMedia,.newsroomBreakingEnter .newsroomBreakingMedia::before,.newsroomBreakingEnter .newsroomBreakingMedia::after,.newsroomBreakingEnter .newsroomBreakingMedia .newsroomPhoto,.newsroomBreakingEnter .newsroomBreakingTag,.newsroomBreakingEnter .newsroomBreakingTag i,.newsroomBreakingEnter .newsroomMeta,.newsroomBreakingEnter h3,.newsroomBreakingEnter .newsroomDek{animation:none!important;clip-path:none!important;transform:none!important;opacity:1!important;filter:none!important;text-shadow:none!important}}
+@media(prefers-reduced-motion:reduce){.newsroomBreakingEnter .newsroomBreakingMedia::before,.newsroomBreakingEnter .newsroomBreakingMedia::after{opacity:0!important}}
