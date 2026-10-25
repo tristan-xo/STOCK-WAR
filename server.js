@@ -629,35 +629,45 @@ function buildNewsBody(entry, company, sector, sentiment, impact, marketWide){
 }
 function generateRoundNews(roundId){
   if(!AUTO_NEWS) return null;
-  // Eight distinct stories: normally six different sectors + two company/market
-  // stories. Each story names a real stock where possible, while its impact also
-  // propagates to peers in the same sector. Prices are not changed until trading closes.
+  // Use recent history to avoid repeating the same category/sector/company combination.
   const storyCount=8;
+  const recentRows=db.prepare(`SELECT category,target_sector,headline FROM market_news_events WHERE round_id<? ORDER BY round_id DESC,id DESC LIMIT 24`).all(roundId);
+  const recentCategories=new Set(recentRows.map(x=>String(x.category||'')));
+  const recentStoryKeys=new Set(recentRows.map(x=>`${String(x.category||'').toLowerCase()}|${String(x.target_sector||'').toLowerCase()}|${String(x.headline||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}`));
+  const recentCategorySectors=new Set(recentRows.map(x=>`${String(x.category||'').toLowerCase()}|${String(x.target_sector||'').toLowerCase()}`));
+  const recentHeadlines=recentRows.map(x=>String(x.headline||'').toLowerCase());
   const tx=db.transaction(()=>{
     db.prepare(`DELETE FROM market_news_events WHERE round_id=?`).run(roundId);
     db.prepare(`DELETE FROM round_impacts WHERE round_id=?`).run(roundId);
     const all=db.prepare(`SELECT id,name,symbol,sector FROM stocks`).all();
     const upsert=db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct`);
     const insertNews=db.prepare(`INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)`);
-    const stories=[]; const usedCategories=new Set(); const usedSectors=new Set();
+    const stories=[]; const usedCategories=new Set(); const usedSectors=new Set(); const usedCompanies=new Set();
     const sectorPool=NEWS_SECTOR_WEIGHTS.map(([sector])=>sector).sort(()=>Math.random()-0.5);
-    const pickFreshSector=()=>{
+    const pickFreshSector=(category)=>{
       const available=sectorPool.filter(x=>!usedSectors.has(x));
-      const sector=available.length?available[0]:weightedSector();
+      const fresh=available.filter(sector=>!recentCategorySectors.has(`${String(category).toLowerCase()}|${String(sector).toLowerCase()}`));
+      const sector=(fresh.length?fresh:available)[0] || weightedSector();
       usedSectors.add(sector); return sector;
     };
     for(let i=0;i<storyCount;i++){
       const candidates=NEWS_LIBRARY.filter(x=>!usedCategories.has(x.category));
-      const entry=weightedPick(candidates.length?candidates:NEWS_LIBRARY);
+      const weightedCandidates=candidates.map(x=>({...x,weight:x.weight*(recentCategories.has(x.category)?0.35:1)}));
+      const entry=weightedPick(weightedCandidates.length?weightedCandidates:NEWS_LIBRARY);
       usedCategories.add(entry.category);
       const marketWide=(entry.category==='Market Risk'||entry.category==='Market Rally') && i>=6;
-      const targetSector=marketWide?null:pickFreshSector();
+      const targetSector=marketWide?null:pickFreshSector(entry.category);
       const sectorStocks=targetSector?all.filter(st=>st.sector===targetSector):[];
-      const companyRow=sectorStocks.length?sectorStocks[Math.floor(Math.random()*sectorStocks.length)]:null;
+      const freshCompanies=sectorStocks.filter(st=>!usedCompanies.has(st.id)&&!recentHeadlines.some(h=>h.includes(String(st.name).toLowerCase())));
+      const companyPool=freshCompanies.length?freshCompanies:sectorStocks.filter(st=>!usedCompanies.has(st.id));
+      const companyRow=companyPool.length?companyPool[Math.floor(Math.random()*companyPool.length)]:sectorStocks[Math.floor(Math.random()*sectorStocks.length)]||null;
+      if(companyRow)usedCompanies.add(companyRow.id);
       const company=companyRow?.name||targetSector||'Indian equities';
       const symbol=companyRow?.symbol||'';
       const [rawTitle,rawBody]=chooseTemplate(entry);
-      const title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{symbol}}',symbol).replaceAll('{{sector}}',targetSector||'the market');
+      let title=rawTitle.replaceAll('{{company}}',company).replaceAll('{{symbol}}',symbol).replaceAll('{{sector}}',targetSector||'the market');
+      const storyKey=`${String(entry.category).toLowerCase()}|${String(targetSector||'').toLowerCase()}|${title.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}`;
+      if(recentStoryKeys.has(storyKey)&&sectorStocks.length>1){const alternatives=sectorStocks.filter(st=>st.id!==companyRow?.id&&!usedCompanies.has(st.id));if(alternatives.length){const alt=alternatives[Math.floor(Math.random()*alternatives.length)];usedCompanies.add(alt.id);title=rawTitle.replaceAll('{{company}}',alt.name).replaceAll('{{symbol}}',alt.symbol).replaceAll('{{sector}}',targetSector||'the market');}}
       const magnitude=randomBetween(AUTO_NEWS_MIN_PCT/2.2,AUTO_NEWS_MAX_PCT/2.2);
       const impact=money((entry.sentiment==='positive'?1:-1)*magnitude);
       const body=buildNewsBody(entry,company,targetSector||'Indian equities',entry.sentiment,impact,marketWide);
@@ -742,9 +752,10 @@ function currentRound() {
   return s.current_round;
 }
 function roundOpen() {
+  transitionTimer();
   const r = currentRound();
   const st = state();
-  return r > 0 && st.event_status === "live" && st.phase === 'trading' && db.prepare(`SELECT status FROM rounds WHERE id=?`).get(r)?.status === "trading";
+  return r > 0 && st.event_status === "live" && st.phase === 'trading' && Number(st.phase_ends_at||0)>nowMs() && db.prepare(`SELECT status FROM rounds WHERE id=?`).get(r)?.status === "trading";
 }
 function money(n) { return Math.round(Number(n)*100)/100; }
 
@@ -967,7 +978,7 @@ app.post("/api/player/trade", requireLogin, (req,res)=>{
   let result=null, q=null, stock=null;
   const tx=db.transaction(()=>{
     const live=state();
-    if(live.event_status!=='live' || live.phase!=='trading' || live.current_round!==r || db.prepare(`SELECT status FROM rounds WHERE id=?`).get(r)?.status !== 'trading') throw new Error('Trading window is closed.');
+    if(live.event_status!=='live' || live.phase!=='trading' || live.current_round!==r || !live.phase_ends_at || nowMs()>=Number(live.phase_ends_at) || db.prepare(`SELECT status FROM rounds WHERE id=?`).get(r)?.status !== 'trading') throw new Error('Trading window is closed.');
     // IMPORTANT: read the stock price and calculate the quote INSIDE the same transaction that commits the trade.
     // This removes the stale-price race at a round boundary.
     stock=db.prepare(`SELECT * FROM stocks WHERE id=?`).get(Number(stockId));
@@ -1131,6 +1142,7 @@ app.post("/api/admin/apply-round", requireAdmin, (req,res)=>{
 });
 
 app.post("/api/admin/pause", requireAdmin, (req,res)=>{
+  transitionTimer();
   const st=state();
   if(!st.current_round || st.phase==='idle') return res.status(400).json({error:"Nothing is running."});
   if(st.event_status==='paused'){
