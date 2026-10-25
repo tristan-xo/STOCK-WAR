@@ -780,17 +780,18 @@ function tradeQuote({stock,side,quantity,orderType='MARKET',limitPrice=null}){
   if(type==='LIMIT' && (!Number.isFinite(lp)||lp<=0)) throw new Error('Limit price must be greater than zero.');
 
   const marketPrice=Number(stock.price);
-  const volume=Math.max(1,Number(stock.volume)||100000);
-  const impactBps=Math.min(MAX_IMPACT_BPS, Math.max(0, (qty/volume)*1000));
-  const slippageBps=type==='MARKET'?Math.max(0,SLIPPAGE_BPS):0;
-  const totalAdjustmentBps=slippageBps+impactBps;
-  let executionPrice=type==='LIMIT'?lp:marketPrice*(1+(side==='BUY'?1:-1)*totalAdjustmentBps/10000);
+  // Stock Wars uses a no-slippage execution model: every accepted order executes
+  // at the current server-side market price. Limit prices are conditions, not
+  // the execution price; a limit order must be executable at the market price.
+  const slippageBps=0;
+  const impactBps=0;
+  const totalAdjustmentBps=0;
 
   if(type==='LIMIT'){
     const executable=side==='BUY'?marketPrice<=lp:marketPrice>=lp;
     if(!executable) throw new Error(`Limit order not executable at the current market price of ${money(marketPrice)}.`);
   }
-  executionPrice=money(Math.max(0.01,executionPrice));
+  const executionPrice=money(Math.max(0.01,marketPrice));
   const gross=money(executionPrice*qty), fee=0;
   const net=gross;
   return {
