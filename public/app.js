@@ -292,8 +292,9 @@ async function submitOrder(id,side,price,orderType='MARKET',limitPrice=null,fina
   const nonce=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_-]/g,'');
   try{
     const q=await api(`/api/player/quote?stockId=${id}&side=${side}&quantity=${finalQty}&orderType=${orderType}${limitPrice!==null?'&limitPrice='+encodeURIComponent(limitPrice):''}`);
-    await api('/api/player/trade',{method:'POST',body:JSON.stringify({stockId:id,side,quantity:finalQty,orderType,limitPrice,clientNonce:nonce})});
-    closeModal();toast(`${side} ${q.quantity} shares completed · total ${money(q.net)}`);playerPage();
+    const executed=await api('/api/player/trade',{method:'POST',body:JSON.stringify({stockId:id,side,quantity:finalQty,orderType,limitPrice,clientNonce:nonce})});
+    const receipt=executed.trade||q;
+    closeModal();toast(`${side} ${receipt.quantity} shares completed at ${money(receipt.executionPrice)} · total ${money(receipt.net)}`);playerPage();
   }catch(e){toast(e.message)}
 }
 
