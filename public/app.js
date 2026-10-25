@@ -143,10 +143,11 @@ async function playerPage(){
   /* Stock Wars Daily front page for the live round news feed. */
   const news=d.newsEvents||[];
   const leadStory=news[0];
-  const leftStories=news.slice(1,3);
-  const sideStories=news.slice(3,5);
-  const moreStories=news.slice(5);
-  const paperGridClass=news.length===1?'newsroomGridSolo':news.length<4?'newsroomGridPair':'newsroomGrid';
+  const leftStories=news.length>=7?news.slice(1,3):news.length>=3?news.slice(1,2):[];
+  const sideStories=news.length>=7?news.slice(3,5):news.length>=4?news.slice(2,3):[];
+  const centerStories=news.length>=8?news.slice(5,8):news.length===7?news.slice(5,7):news.length===6?news.slice(3,6):news.length===5?news.slice(3,5):news.length===4?news.slice(3,4):news.length===3?news.slice(2,3):news.length===2?news.slice(1,2):[];
+  const moreStories=news.length>=9?news.slice(8):[];
+  const paperGridClass=news.length<=2?'newsroomGridSolo':news.length<4?'newsroomGridPair':'newsroomGrid';
   const paperBody=n=>esc(String(n.body||'').replace(/\s+/g,' ').trim());
   const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><span class='newsroomArtGlyph'>${i%3===0?'▥':i%3===1?'◌':'◆'}</span><small>${esc(n.target_sector||'MARKET-WIDE')}</small></div>`;
   const paperStory=(n,i)=>`<article class='newsroomStory'>${paperArt(n,i)}<div class='newsroomStoryText'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div><h4>${esc(n.headline)}</h4><p>${paperBody(n)}</p></div></article>`;
@@ -155,7 +156,7 @@ async function playerPage(){
     <div class='newsroomNav'><span>TOP STORIES</span><span>MARKETS</span><span>COMPANIES</span><span>SECTORS</span><span>${news.length} ARTICLES</span></div>
     ${leadStory?`<div class='${paperGridClass}'>
       <aside class='newsroomRail newsroomLeft'>${leftStories.map((n,i)=>paperStory(n,i+1)).join('')}</aside>
-      <article class='newsroomLead'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(leadStory.target_sector||'MARKET-WIDE')}</span></div><h3>${esc(leadStory.headline)}</h3><p class='newsroomDek'>${paperBody(leadStory)}</p>${paperArt(leadStory,0,true)}<div class='newsroomByline'>ROUND ${STATE.current_round||'—'} · STOCK WARS NEWSROOM</div></article>
+      <article class='newsroomLead'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(leadStory.target_sector||'MARKET-WIDE')}</span></div><h3>${esc(leadStory.headline)}</h3><p class='newsroomDek'>${paperBody(leadStory)}</p>${paperArt(leadStory,0,true)}<div class='newsroomByline'>ROUND ${STATE.current_round||'—'} · STOCK WARS NEWSROOM</div>${centerStories.length?`<div class='newsroomCenterMore'><h4>MORE FROM THE MARKET</h4>${centerStories.map((n,i)=>paperStory(n,i+5)).join('')}</div>`:''}</article>
       <aside class='newsroomRail newsroomRight'>${sideStories.map((n,i)=>paperStory(n,i+3)).join('')}</aside>
     </div>${moreStories.length?`<section class='newsroomMore'><h3>MORE FROM THE MARKET</h3><div class='newsroomMoreGrid'>${moreStories.map((n,i)=>paperStory(n,i+5)).join('')}</div></section>`:''}`:'<div class="empty newsroomEmpty">News will appear automatically when the round starts.</div>'}
   </section>
