@@ -263,6 +263,11 @@ label{color:#344054!important;font-weight:650}
 .stockGrid,.leaderGrid,.holdingList,.finalLeaderboard{gap:8px}
 table th,table td{line-height:1.45}
 
+/* Show more stock cards per row while preserving readable tablet and phone layouts. */
+@media(min-width:1001px){.stockGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1000px){.stockGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.stockGrid{grid-template-columns:1fr}}
+
 @media(max-width:950px){.wrap{padding:16px}}
 @media(max-width:650px){.wrap{padding:16px 12px}.card{padding:16px}.top{align-items:flex-start}.playerhero{padding:20px}.kpi{padding:16px}}
 
