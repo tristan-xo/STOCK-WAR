@@ -1,4 +1,4 @@
-const app=document.getElementById('app');let ME=null,STATE=null,adminTab='overview',poll=null,sync=null,clock=null,presenceClock=null,serverOffset=0,holdingSort={key:'market_value',dir:'desc'},marketExpanded=false,holdingsExpanded=false,playerRenderSeq=0,hostTickerClock=null,hostSnapshotClock=null;
+const app=document.getElementById('app');let ME=null,STATE=null,adminTab='overview',poll=null,sync=null,clock=null,presenceClock=null,serverOffset=0,holdingSort={key:'market_value',dir:'desc'},marketExpanded=false,holdingsExpanded=false,playerRenderSeq=0,hostTickerClock=null,hostSnapshotClock=null,lastBreakingStoryKey=null;
 const $=s=>document.querySelector(s);const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct=(a,b)=>b?((a-b)/b*100):0;
@@ -143,6 +143,10 @@ async function playerPage(){
   /* Stock Wars Daily front page for the live round news feed. */
   const news=d.newsEvents||[];
   const leadStory=news[0];
+  const breakingStoryKey=STATE.phase==='news'&&leadStory?`${STATE.current_round||0}:${leadStory.id??leadStory.headline}`:null;
+  const breakingNews=!!breakingStoryKey;
+  const animateBreaking=breakingNews&&breakingStoryKey!==lastBreakingStoryKey;
+  lastBreakingStoryKey=breakingNews?breakingStoryKey:null;
   const leftStories=news.length>=7?news.slice(1,3):news.length>=3?news.slice(1,2):[];
   const sideStories=news.length>=7?news.slice(3,5):news.length>=4?news.slice(2,3):[];
   const centerStories=news.length>=8?news.slice(5,8):news.length===7?news.slice(5,7):news.length===6?news.slice(3,6):news.length===5?news.slice(3,5):news.length===4?news.slice(3,4):news.length===3?news.slice(2,3):news.length===2?news.slice(1,2):[];
@@ -223,7 +227,7 @@ async function playerPage(){
     <div class='newsroomNav'><span>TOP STORIES</span><span>MARKETS</span><span>COMPANIES</span><span>SECTORS</span><span>${news.length} ARTICLES</span></div>
     ${leadStory?`<div class='${paperGridClass}'>
       <aside class='newsroomRail newsroomLeft'>${leftStories.map((n,i)=>paperStory(n,i+1)).join('')}</aside>
-      <article class='newsroomLead'><div class='newsroomMeta'><span>MARKET DESK</span></div><h3>${paperHeadline(leadStory)}</h3><p class='newsroomDek'>${paperBody(leadStory)}</p>${paperArt(leadStory,0,true)}<div class='newsroomByline'>ROUND ${STATE.current_round||'—'} · STOCK WARS NEWSROOM</div>${centerStories.length?`<div class='newsroomCenterMore'><h4>MORE FROM THE MARKET</h4>${centerStories.map((n,i)=>paperStory(n,i+5)).join('')}</div>`:''}</article>
+      <article class='newsroomLead ${breakingNews?'newsroomImageLead':''} ${animateBreaking?'newsroomBreakingEnter':''}'>${breakingNews?`<div class='newsroomBreakingMedia'>${paperArt(leadStory,0,true)}<span class='newsroomBreakingTag'><i aria-hidden='true'></i>BREAKING NEWS</span></div>`:''}<div class='newsroomMeta'><span>MARKET DESK</span>${breakingNews?`<span class='newsroomBreakingMeta'>LIVE UPDATE · ROUND ${STATE.current_round||'—'}</span>`:''}</div><h3>${paperHeadline(leadStory)}</h3><p class='newsroomDek'>${paperBody(leadStory)}</p>${breakingNews?'':paperArt(leadStory,0,true)}<div class='newsroomByline'>ROUND ${STATE.current_round||'—'} · STOCK WARS NEWSROOM</div>${centerStories.length?`<div class='newsroomCenterMore'><h4>MORE FROM THE MARKET</h4>${centerStories.map((n,i)=>paperStory(n,i+5)).join('')}</div>`:''}</article>
       <aside class='newsroomRail newsroomRight'>${sideStories.map((n,i)=>paperStory(n,i+3)).join('')}</aside>
     </div>${moreStories.length?`<section class='newsroomMore'><h3>MORE FROM THE MARKET</h3><div class='newsroomMoreGrid'>${moreStories.map((n,i)=>paperStory(n,i+5)).join('')}</div></section>`:''}`:'<div class="empty newsroomEmpty">News will appear automatically when the round starts.</div>'}
   </section>
