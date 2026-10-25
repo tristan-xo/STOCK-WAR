@@ -245,7 +245,10 @@ async function renderPlayerData(can,dashboardData=null){
   const sectorBox=$('#sectors'); if(sectorBox){sectorBox.onclick=e=>{const card=e.target.closest('.sectorTile');if(card)openSector(card.dataset.sector)}}
   renderHoldingsTable(d.portfolio.holdings,can);
   $('#roundHistory').innerHTML=d.roundHistory?.length?`<div class="historyGrid">${d.roundHistory.map(h=>`<div class="historyItem"><b>R${h.round_id}</b><strong>${money(h.total)}</strong><span>${pnl(h.profit)}</span></div>`).join('')}</div>`:'<div class="empty">Round performance will appear after each price update.</div>';
-  $('#leaderboard').innerHTML=`<div class="leaderGrid">${lb.slice(0,10).map(x=>`<div class="leader ${x.id===ME.id?'me':''}"><span class="rank">${x.rank}</span><div><b>${esc(x.name)}</b><small>${x.rank===1?'Current leader':'Portfolio rank'}</small></div><strong>${money(x.total)}</strong><span>${pnl(x.profit)}</span></div>`).join('')}</div>`;
+  const playerRank=lb.find(x=>x.id===ME.id);
+  const visibleLeaderboard=lb.slice(0,2);
+  if(playerRank&&!visibleLeaderboard.some(x=>x.id===playerRank.id))visibleLeaderboard.push(playerRank);
+  $('#leaderboard').innerHTML=`<div class="leaderGrid">${visibleLeaderboard.map(x=>`<div class="leader ${x.id===ME.id?'me':''}${x.rank===1?' rankGold':x.rank===2?' rankSilver':x.id===ME.id?' rankBronze':''}"><span class="rank">${x.rank}</span><div><b>${esc(x.name)}</b><small>${x.rank===1?'1st place':x.rank===2?'2nd place':x.id===ME.id?'Your rank':'Portfolio rank'}</small></div><strong>${money(x.total)}</strong><span>${pnl(x.profit)}</span></div>`).join('')}</div>`;
 }
 function sortHoldings(key){
   if(holdingSort.key===key) holdingSort.dir*=-1; else {holdingSort.key=key;holdingSort.dir=key==='symbol'?1:'desc';}

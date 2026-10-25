@@ -255,6 +255,13 @@ label{color:#344054!important;font-weight:650}
 .finalRank,.finalValue,.winnerAmount{color:var(--text)}
 .winnerCard.champion,.finalRow.me{border-color:#a9c9df!important}
 
+.leader.rankGold{background:#fff7dc!important;border-color:#d9ad37!important}
+.leader.rankGold .rank{color:#946900!important}
+.leader.rankSilver{background:#f1f4f7!important;border-color:#b9c3cf!important}
+.leader.rankSilver .rank{color:#687687!important}
+.leader.rankBronze{background:#fff0e4!important;border-color:#bf7a43!important}
+.leader.rankBronze .rank{color:#925122!important}
+
 /* Dense-data readability: preserve an 8px rhythm and give tables room to breathe. */
 .sectionHead{margin-bottom:16px}
 .grid,.hostGrid,.opsGrid{gap:16px}
