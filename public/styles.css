@@ -1106,3 +1106,32 @@ table th,table td{line-height:1.45}
 
 /* Host portal live ticker tape */
 .hostTicker{display:flex;align-items:stretch;gap:0;min-width:0;margin:0 0 16px;overflow:hidden;border:1px solid var(--line,#dce3eb);border-radius:12px;background:var(--panel,#fff);box-shadow:0 3px 12px rgba(16,35,58,.045);color:var(--text,#142033);height:48px}.hostTickerLabel{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:0 15px;background:var(--panel2,#f4f7fa);border-right:1px solid var(--line,#dce3eb);font-size:10px;font-weight:900;letter-spacing:.09em;white-space:nowrap}.hostTickerDot{width:7px;height:7px;border-radius:50%;background:#16a765;box-shadow:0 0 0 3px rgba(22,167,101,.13)}.hostTickerViewport{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center}.hostTickerTrack{display:flex;align-items:center;width:max-content;animation:hostTickerScroll 90s linear infinite}.hostTicker:hover .hostTickerTrack{animation-play-state:paused}.hostTickerItem{height:48px;display:flex;align-items:center;gap:9px;padding:0 18px;border-right:1px solid var(--line,#dce3eb);white-space:nowrap;font-size:12px}.hostTickerItem b{font-size:11px;letter-spacing:.035em}.hostTickerItem strong{font-size:12px;font-variant-numeric:tabular-nums}.hostTickerItem em{font-size:11px;font-style:normal;font-weight:800;font-variant-numeric:tabular-nums}.hostTickerItem .up{color:#0b9b59}.hostTickerItem .down{color:#e04444}.hostTickerItem .flat{color:var(--muted,#68778a)}.hostTickerError{display:flex;align-items:center;padding:0 14px;font-size:12px;color:var(--muted,#68778a)}@keyframes hostTickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}@media(prefers-reduced-motion:reduce){.hostTickerTrack{animation:none}}@media(max-width:650px){.hostTicker{height:44px}.hostTickerLabel{padding:0 10px;font-size:9px}.hostTickerItem{height:44px;padding:0 12px;gap:7px}.hostTickerItem em{font-size:10px}}
+
+/* Professional host dashboard: live participant and market snapshot */
+.hostSnapshotGrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.hostSnapshotCard{min-width:0}
+.hostSnapshotStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.hostSnapshotStats>div{padding:12px;border:1px solid var(--line,#dce3eb);border-radius:10px;background:var(--panel2,#f7f9fc);min-width:0}
+.hostSnapshotStats b,.hostSnapshotStats small{display:block}
+.hostSnapshotStats b{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.hostSnapshotStats small{margin-top:3px;color:var(--muted,#68778a);font-size:11px}
+.hostSnapshotPlayers{display:flex;flex-direction:column;gap:0}
+.hostSnapshotPlayer{display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid var(--line,#dce3eb);min-width:0}
+.hostPresenceDot{width:8px;height:8px;flex:0 0 8px;border-radius:50%}
+.hostPresenceDot.online{background:#13a66b;box-shadow:0 0 0 3px rgba(19,166,107,.12)}
+.hostPresenceDot.offline{background:#aab4c1}
+.hostSnapshotPlayerName{flex:1;min-width:0}
+.hostSnapshotPlayerName b,.hostSnapshotPlayerName small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hostSnapshotPlayerName b{font-size:12px}
+.hostSnapshotPlayerName small{font-size:10px;color:var(--muted,#68778a);margin-top:3px}
+.hostSnapshotPlayer .pill{font-size:9px;padding:4px 7px}
+.hostMoverColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.hostMoverColumns h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;color:var(--muted,#68778a)}
+.hostSnapshotRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line,#dce3eb);font-size:11px}
+.hostSnapshotRow>div{min-width:0}.hostSnapshotRow b,.hostSnapshotRow small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hostSnapshotRow b{font-size:12px}.hostSnapshotRow small{font-size:10px;color:var(--muted,#68778a);margin-top:2px}
+.hostSnapshotRow strong{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hostSnapshotRow>span{font-weight:800;white-space:nowrap}
+.hostSnapshotFoot{font-size:10px;margin-top:12px}
+@media(max-width:900px){.hostSnapshotGrid{grid-template-columns:1fr}}
+@media(max-width:520px){.hostSnapshotPlayer{gap:6px}.hostSnapshotPlayer .btn{padding:6px 8px}.hostSnapshotStats>div{padding:9px}.hostMoverColumns{gap:8px}.hostSnapshotRow{grid-template-columns:minmax(0,1fr) auto;gap:5px}.hostSnapshotRow>span{grid-column:2}.hostSnapshotRow strong{grid-column:2;grid-row:1}}
