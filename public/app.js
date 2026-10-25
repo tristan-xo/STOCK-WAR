@@ -149,20 +149,38 @@ async function playerPage(){
   const moreStories=news.length>=9?news.slice(8):[];
   const paperGridClass=news.length<=2?'newsroomGridSolo':news.length<4?'newsroomGridPair':'newsroomGrid';
   const paperBody=n=>esc(String(n.body||'').replace(/\s+/g,' ').trim());
-  const paperImage=n=>{
+  const paperCategory=n=>{
     const sector=String(n.target_sector||'').toLowerCase();
-    const story=`${n.headline||''} ${n.body||''}`.toLowerCase();
-    const matches=(pattern)=>pattern.test(`${sector} ${story}`);
-    if(matches(/bank|lender|credit|financial|finance|hdfc|icici|sbi|kotak|axis bank/))return 'banking';
-    if(matches(/health|hospital|pharma|medical|apollo|cipla|sun pharma|dr reddy|max healthcare/))return 'healthcare';
-    if(matches(/auto|automobile|vehicle|car maker|ashok leyland|tata motors|maruti|mahindra|eicher/))return 'automobile';
-    if(matches(/energy|power|solar|renewable|oil|gas|ntpc|ongc|adani green|coal india/))return 'energy';
-    if(matches(/metal|mining|steel|cement|industrial|defence|infrastructure|construction|jsw|tata steel|hindalco|larsen|l&t/))return 'industry';
-    if(matches(/technology|consumer tech|software|semiconductor|chip|telecom|it sector|infosys|tcs|wipro|hcltech|bharti airtel/))return 'technology';
-    if(matches(/fmcg|consumer|retail|shopping|trent|dmart|tata consumer|hindustan unilever|itc limited/))return 'consumer';
+    const headline=String(n.headline||'').toLowerCase();
+    if(/bank|financial|finance/.test(sector)||/hdfc|icici|sbi|kotak|axis bank/.test(headline))return 'banking';
+    if(/health|pharma|medical/.test(sector)||/hospital|apollo|cipla|sun pharma|dr reddy|max healthcare/.test(headline))return 'healthcare';
+    if(/auto|automobile/.test(sector)||/vehicle|car maker|ashok leyland|tata motors|maruti|mahindra|eicher/.test(headline))return 'automobile';
+    if(/energy|power/.test(sector)||/solar|renewable|oil|gas|ntpc|ongc|adani green|coal india/.test(headline))return 'energy';
+    if(/metal|mining|steel|cement|industrial|defence|infrastructure/.test(sector)||/construction|jsw|tata steel|hindalco|larsen|l&t/.test(headline))return 'industry';
+    if(/technology|consumer tech|software|telecom|\bit\b/.test(sector)||/semiconductor|chip|infosys|tcs|wipro|hcltech|bharti airtel/.test(headline))return 'technology';
+    if(/fmcg|consumer|retail/.test(sector)||/shopping|trent|dmart|tata consumer|hindustan unilever|itc limited/.test(headline))return 'consumer';
     return 'market';
   };
-  const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><img class='newsroomPhoto' src='/images/news/${paperImage(n)}.jpg' alt='' loading='lazy' decoding='async'><small>${esc(n.target_sector||'MARKET-WIDE')}</small></div>`;
+  const paperImagePools={
+    banking:['/images/news/library/banking-02.jpg','/images/news/banking.jpg'],
+    healthcare:['/images/news/library/healthcare-02.jpg','/images/news/library/healthcare-03.jpg','/images/news/healthcare.jpg'],
+    automobile:['/images/news/automobile.jpg','/images/news/industry.jpg','/images/news/library/industry-02.jpg'],
+    energy:['/images/news/library/energy-02.jpg','/images/news/library/energy-03.jpg','/images/news/library/energy-04.jpg','/images/news/energy.jpg'],
+    industry:['/images/news/library/industry-02.jpg','/images/news/industry.jpg'],
+    technology:['/images/news/library/technology-03.jpg','/images/news/technology.jpg'],
+    consumer:['/images/news/library/consumer-02.jpg','/images/news/library/consumer-03.jpg','/images/news/consumer.jpg'],
+    market:['/images/news/market.jpg','/images/news/library/banking-02.jpg']
+  };
+  const allPaperImages=Object.values(paperImagePools).flat();
+  const assignedPaperImages=new Set();
+  const paperImageByStory=new Map();
+  news.forEach(n=>{
+    const pool=paperImagePools[paperCategory(n)]||paperImagePools.market;
+    const image=pool.find(path=>!assignedPaperImages.has(path))||allPaperImages.find(path=>!assignedPaperImages.has(path))||pool[0];
+    assignedPaperImages.add(image);
+    paperImageByStory.set(n,image);
+  });
+  const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><img class='newsroomPhoto' src='${paperImageByStory.get(n)||paperImagePools.market[0]}' alt='' loading='lazy' decoding='async'><small>${esc(n.target_sector||'MARKET-WIDE')}</small></div>`;
   const paperStory=(n,i)=>`<article class='newsroomStory'>${paperArt(n,i)}<div class='newsroomStoryText'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div><h4>${esc(n.headline)}</h4><p>${paperBody(n)}</p></div></article>`;
   shell(`<section class='newsroomPaper'>
     <header class='newsroomMasthead'><div class='newsroomMark'>SW</div><div class='newsroomBrand'><h2>STOCK WARS DAILY</h2><small>PORTFOLIO MANAGEMENT · MARKET EDITION</small></div><div class='newsroomRound'><b>ROUND ${STATE.current_round||'—'}</b><span>${STATE.event_status==='paused'?'BRIEFING PAUSED':STATE.phase==='news'?'MARKET BRIEFING':STATE.phase==='trading'?'MARKET OPEN':'BETWEEN ROUNDS'}</span></div></header>
