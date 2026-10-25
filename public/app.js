@@ -184,13 +184,36 @@ async function playerPage(){
     consumer:['/images/news/library/consumer-02.jpg','/images/news/library/consumer-03.jpg','/images/news/consumer.jpg'],
     market:['/images/news/market.jpg','/images/news/library/banking-02.jpg']
   };
-  const allPaperImages=Object.values(paperImagePools).flat();
-  const assignedPaperImages=new Set();
+  const sectorImagePaths={
+    'automobile':'/images/news/sectors/automobile.jpg',
+    'aviation':'/images/news/sectors/aviation.jpg',
+    'banking':'/images/news/sectors/banking.jpg',
+    'cement':'/images/news/sectors/cement.jpg',
+    'consumer':'/images/news/sectors/consumer.jpg',
+    'consumer tech':'/images/news/sectors/consumer-tech.jpg',
+    'defence':'/images/news/sectors/defence.jpg',
+    'energy':'/images/news/sectors/energy.jpg',
+    'energy & conglomerates':'/images/news/sectors/energy-and-conglomerates.jpg',
+    'financial services':'/images/news/sectors/financial-services.jpg',
+    'fmcg':'/images/news/sectors/fmcg.jpg',
+    'healthcare':'/images/news/sectors/healthcare.jpg',
+    'industrials':'/images/news/sectors/industrials.jpg',
+    'infrastructure':'/images/news/sectors/infrastructure.jpg',
+    'insurance':'/images/news/sectors/insurance.jpg',
+    'it':'/images/news/sectors/it.jpg',
+    'metals':'/images/news/sectors/metals.jpg',
+    'mining':'/images/news/sectors/mining.jpg',
+    'pharma':'/images/news/sectors/pharma.jpg',
+    'power':'/images/news/sectors/power.jpg',
+    'retail':'/images/news/sectors/retail.jpg',
+    'telecom':'/images/news/sectors/telecom.jpg',
+    'travel & rail':'/images/news/sectors/travel-and-rail.jpg'
+  };
   const paperImageByStory=new Map();
   news.forEach(n=>{
-    const pool=paperImagePools[paperCategory(n)]||paperImagePools.market;
-    const image=pool.find(path=>!assignedPaperImages.has(path))||allPaperImages.find(path=>!assignedPaperImages.has(path))||pool[0];
-    assignedPaperImages.add(image);
+    const sector=String(n.target_sector||'').trim().toLowerCase();
+    const fallbackPool=paperImagePools[paperCategory(n)]||paperImagePools.market;
+    const image=sectorImagePaths[sector]||fallbackPool[0]||paperImagePools.market[0];
     paperImageByStory.set(n,image);
   });
   const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><img class='newsroomPhoto' src='${paperImageByStory.get(n)||paperImagePools.market[0]}' alt='' loading='lazy' decoding='async'></div>`;
