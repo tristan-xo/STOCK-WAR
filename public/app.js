@@ -1,4 +1,4 @@
-const app=document.getElementById('app');let ME=null,STATE=null,adminTab='overview',poll=null,sync=null,clock=null,presenceClock=null,serverOffset=0,holdingSort={key:'market_value',dir:'desc'},marketExpanded=false,holdingsExpanded=false,playerRenderSeq=0,hostTickerClock=null;
+const app=document.getElementById('app');let ME=null,STATE=null,adminTab='overview',poll=null,sync=null,clock=null,presenceClock=null,serverOffset=0,holdingSort={key:'market_value',dir:'desc'},marketExpanded=false,holdingsExpanded=false,playerRenderSeq=0,hostTickerClock=null,hostSnapshotClock=null;
 const $=s=>document.querySelector(s);const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct=(a,b)=>b?((a-b)/b*100):0;
@@ -341,8 +341,40 @@ ${o.newsEvents?.length ? `<div class="hostNewsPaperList">${o.newsEvents.map((n,i
       <p>${esc(n.body)}</p>
     </div>
   </article>`).join('')}</div>` : '<div class="empty">Start a round to publish news.</div>'}
-</div><div class="card c12"><div class="sectionHead"><div><span class="eyebrow">LIVE RANKING</span><h2>Top Players</h2></div></div><div id="hostLeaderboard"></div></div></div>`;loadHostLeaderboard();syncHostTimer()}
+</div><div class="card c12"><div class="sectionHead"><div><span class="eyebrow">LIVE RANKING</span><h2>Top Players</h2></div></div><div id="hostLeaderboard"></div></div></div>`;loadHostLeaderboard();loadHostSnapshot();if(hostSnapshotClock)clearInterval(hostSnapshotClock);hostSnapshotClock=setInterval(loadHostSnapshot,15000);syncHostTimer()}
 async function loadHostLeaderboard(){const lb=await api('/api/leaderboard');$('#hostLeaderboard').innerHTML=`<div class="leaderGrid">${lb.slice(0,12).map(x=>`<div class="leader"><span class="rank">${x.rank}</span><div><b>${esc(x.name)}</b><small>${esc(x.username)}</small></div><strong>${money(x.total)}</strong><span>${pnl(x.profit)}</span></div>`).join('')}</div>`}
+async function loadHostSnapshot(){
+  const root=$('#admin');if(!root||ME?.role!=='admin'||adminTab!=='overview')return;
+  try{
+    const [ops,stocks]=await Promise.all([api('/api/admin/operations'),api('/api/stocks')]);
+    if(!$('#admin')||adminTab!=='overview')return;
+    const stockRows=(Array.isArray(stocks)?stocks:[]).map(s=>{
+      const price=Number(s.price)||0,base=Number(s.base_price)||price;
+      return {...s,change:base?(price-base)/base*100:0};
+    });
+    const gainers=stockRows.slice().sort((a,b)=>b.change-a.change).slice(0,4);
+    const losers=stockRows.slice().sort((a,b)=>a.change-b.change).slice(0,4);
+    const players=Array.isArray(ops.players)?ops.players:[];
+    const online=players.filter(p=>p.online);
+    const playerRows=players.slice().sort((a,b)=>Number(b.online)-Number(a.online)||String(a.name).localeCompare(String(b.name))).slice(0,8);
+    const moveRows=rows=>rows.map(s=>{const up=s.change>=0;return `<div class="hostSnapshotRow"><div><b>${esc(s.symbol)}</b><small>${esc(s.name||s.sector||'')}</small></div><strong>${money(s.price)}</strong><span class="${up?'green':'red'}">${up?'+':''}${s.change.toFixed(2)}%</span></div>`}).join('')||'<div class="empty">No stock data available.</div>';
+    const playerMarkup=playerRows.map(p=>`<div class="hostSnapshotPlayer"><div class="hostPresenceDot ${p.online?'online':'offline'}"></div><div class="hostSnapshotPlayerName"><b>${esc(p.name)}</b><small>${esc(p.playerId||('STW-'+String(p.id).padStart(3,'0')))} · ${esc(p.username)}</small></div><span class="pill ${p.status==='suspended'?'paused':p.online?'live':''}">${p.status==='suspended'?'Suspended':p.online?'Online':'Offline'}</span><button class="btn secondary tiny" onclick="viewPlayer(${Number(p.id)})">View</button></div>`).join('')||'<div class="empty">No players registered yet.</div>';
+    const host=document.createElement('div');host.className='hostSnapshotGrid';host.innerHTML=`
+      <section class="card hostSnapshotCard">
+        <div class="sectionHead"><div><span class="eyebrow">PARTICIPANT MONITOR</span><h2>Live Player Monitoring</h2></div><button class="btn secondary tiny" onclick="adminTab='operations';adminPage()">Full details</button></div>
+        <div class="hostSnapshotStats"><div><b>${players.length}</b><small>Registered</small></div><div><b>${online.length}</b><small>Online now</small></div><div><b>${ops.suspendedPlayers||0}</b><small>Suspended</small></div></div>
+        <div class="hostSnapshotPlayers">${playerMarkup}</div>
+      </section>
+      <section class="card hostSnapshotCard">
+        <div class="sectionHead"><div><span class="eyebrow">MARKET OVERVIEW</span><h2>Top Movers</h2></div><button class="btn secondary tiny" onclick="adminTab='analytics';adminPage()">Analytics</button></div>
+        <div class="hostMoverColumns"><div><h3>Top gainers</h3>${moveRows(gainers)}</div><div><h3>Top decliners</h3>${moveRows(losers)}</div></div>
+        <div class="muted hostSnapshotFoot">Price change measured against each stock's base price · Refreshes every 15 seconds</div>
+      </section>`;
+    root.appendChild(host);
+  }catch(e){
+    const root=$('#admin');if(root&&!root.querySelector('.hostSnapshotError'))root.insertAdjacentHTML('beforeend','<div class="notice hostSnapshotError">Live host snapshot is temporarily unavailable. The main dashboard remains active.</div>');
+  }
+}
 function syncHostTimer(){const el=document.getElementById('eventTimerHost');if(el){el.textContent=timerText();setTimeout(syncHostTimer,250)}}
 async function adminAudit(){const rows=await api('/api/admin/audit');$('#admin').innerHTML=`<div class="card"><div class="sectionHead"><div><span class="eyebrow">SECURITY</span><h2>Audit Log</h2></div><span class="muted">Latest 500 events</span></div><div class="scroll"><table><thead><tr><th>Time</th><th>Role</th><th>Action</th><th>ID</th><th>Details</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.created_at)}</td><td>${esc(x.role||'-')}</td><td><b>${esc(x.action)}</b></td><td>${x.user_id||'-'}</td><td>${esc(x.meta||'')}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No audit events yet.</td></tr>'}</tbody></table></div></div>`}
 async function startNext(){try{await api('/api/admin/start-round',{method:'POST',body:JSON.stringify({roundId:STATE.current_round+1})});toast('Round started — news is live');adminPage()}catch(e){toast(e.message)}}
