@@ -149,7 +149,20 @@ async function playerPage(){
   const moreStories=news.length>=9?news.slice(8):[];
   const paperGridClass=news.length<=2?'newsroomGridSolo':news.length<4?'newsroomGridPair':'newsroomGrid';
   const paperBody=n=>esc(String(n.body||'').replace(/\s+/g,' ').trim());
-  const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><span class='newsroomArtGlyph'>${i%3===0?'▥':i%3===1?'◌':'◆'}</span><small>${esc(n.target_sector||'MARKET-WIDE')}</small></div>`;
+  const paperImage=n=>{
+    const sector=String(n.target_sector||'').toLowerCase();
+    const story=`${n.headline||''} ${n.body||''}`.toLowerCase();
+    const matches=(pattern)=>pattern.test(`${sector} ${story}`);
+    if(matches(/bank|lender|credit|financial|finance|hdfc|icici|sbi|kotak|axis bank/))return 'banking';
+    if(matches(/health|hospital|pharma|medical|apollo|cipla|sun pharma|dr reddy|max healthcare/))return 'healthcare';
+    if(matches(/auto|automobile|vehicle|car maker|ashok leyland|tata motors|maruti|mahindra|eicher/))return 'automobile';
+    if(matches(/energy|power|solar|renewable|oil|gas|ntpc|ongc|adani green|coal india/))return 'energy';
+    if(matches(/metal|mining|steel|cement|industrial|defence|infrastructure|construction|jsw|tata steel|hindalco|larsen|l&t/))return 'industry';
+    if(matches(/technology|consumer tech|software|semiconductor|chip|telecom|it sector|infosys|tcs|wipro|hcltech|bharti airtel/))return 'technology';
+    if(matches(/fmcg|consumer|retail|shopping|trent|dmart|tata consumer|hindustan unilever|itc limited/))return 'consumer';
+    return 'market';
+  };
+  const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><img class='newsroomPhoto' src='/images/news/${paperImage(n)}.jpg' alt='' loading='lazy' decoding='async'><small>${esc(n.target_sector||'MARKET-WIDE')}</small></div>`;
   const paperStory=(n,i)=>`<article class='newsroomStory'>${paperArt(n,i)}<div class='newsroomStoryText'><div class='newsroomMeta'><span>MARKET DESK</span><span>${esc(n.target_sector||'MARKET-WIDE')}</span></div><h4>${esc(n.headline)}</h4><p>${paperBody(n)}</p></div></article>`;
   shell(`<section class='newsroomPaper'>
     <header class='newsroomMasthead'><div class='newsroomMark'>SW</div><div class='newsroomBrand'><h2>STOCK WARS DAILY</h2><small>PORTFOLIO MANAGEMENT · MARKET EDITION</small></div><div class='newsroomRound'><b>ROUND ${STATE.current_round||'—'}</b><span>${STATE.event_status==='paused'?'BRIEFING PAUSED':STATE.phase==='news'?'MARKET BRIEFING':STATE.phase==='trading'?'MARKET OPEN':'BETWEEN ROUNDS'}</span></div></header>
