@@ -631,8 +631,8 @@ function generateRoundNews(roundId){
   if(!AUTO_NEWS) return null;
   // Use recent history to avoid repeating the same category/sector/company combination.
   const storyCount=8;
-  const recentRows=db.prepare(`SELECT category,target_sector,headline FROM market_news_events WHERE round_id<? ORDER BY round_id DESC,id DESC LIMIT 24`).all(roundId);
-  const recentCategories=new Set(recentRows.map(x=>String(x.category||'')));
+  const recentRows=db.prepare(`SELECT round_id,category,target_sector,headline FROM market_news_events WHERE round_id<? ORDER BY round_id DESC,id DESC LIMIT 24`).all(roundId);
+  const recentCategories=new Set(recentRows.filter(x=>Number(x.round_id)===roundId-1).map(x=>String(x.category||'')));
   const recentStoryKeys=new Set(recentRows.map(x=>`${String(x.category||'').toLowerCase()}|${String(x.target_sector||'').toLowerCase()}|${String(x.headline||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}`));
   const recentCategorySectors=new Set(recentRows.map(x=>`${String(x.category||'').toLowerCase()}|${String(x.target_sector||'').toLowerCase()}`));
   const recentHeadlines=recentRows.map(x=>String(x.headline||'').toLowerCase());
