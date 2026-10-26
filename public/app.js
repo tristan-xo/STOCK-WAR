@@ -414,7 +414,7 @@ ${o.newsEvents?.length ? `<div class="hostNewsPaperList">${o.newsEvents.map((n,i
       <p>${esc(n.body)}</p>
     </div>
   </article>`).join('')}</div>` : '<div class="empty">Start a round to publish news.</div>'}
-</div><div class="card c12"><div class="sectionHead"><div><span class="eyebrow">LIVE RANKING</span><h2>Top Players</h2></div></div><div id="hostLeaderboard"></div></div></div>`;loadHostLeaderboard();loadHostSnapshot();if(hostSnapshotClock)clearInterval(hostSnapshotClock);hostSnapshotClock=setInterval(loadHostSnapshot,15000);syncHostTimer()}
+</div><div class="card c12 hostLeaderboardCard"><div class="sectionHead"><div><span class="eyebrow">LIVE RANKING</span><h2>Top Players</h2></div></div><div id="hostLeaderboard"></div></div></div>`;loadHostLeaderboard();loadHostSnapshot();if(hostSnapshotClock)clearInterval(hostSnapshotClock);hostSnapshotClock=setInterval(loadHostSnapshot,15000);syncHostTimer()}
 async function loadHostLeaderboard(){const lb=await api('/api/leaderboard');$('#hostLeaderboard').innerHTML=`<div class="leaderGrid">${lb.slice(0,12).map(x=>`<div class="leader"><span class="rank">${x.rank}</span><div><b>${esc(x.name)}</b><small>${esc(x.username)}</small></div><strong>${money(x.total)}</strong><span>${pnl(x.profit)}</span></div>`).join('')}</div>`}
 async function loadHostSnapshot(){
   const root=$('#admin');if(!root||ME?.role!=='admin'||adminTab!=='overview')return;

@@ -1143,6 +1143,20 @@ table th,table td{line-height:1.45}
 @media(max-width:900px){.hostSnapshotGrid{grid-template-columns:1fr}}
 @media(max-width:520px){.hostSnapshotPlayer{gap:6px}.hostSnapshotPlayer .btn{padding:6px 8px}.hostSnapshotStats>div{padding:9px}.hostMoverColumns{gap:8px}.hostSnapshotRow{grid-template-columns:minmax(0,1fr) auto;gap:5px}.hostSnapshotRow>span{grid-column:2}.hostSnapshotRow strong{grid-column:2;grid-row:1}}
 
+/* Host dashboard: use the space beside the news feed for the leaderboard. */
+.hostGrid{
+  grid-template-columns:minmax(0, 1.8fr) minmax(280px, .9fr);
+  align-items:start;
+}
+.hostGrid>.hostControl{grid-column:1;grid-row:1;align-self:start}
+.hostGrid>.hostNewsPanel{grid-column:2;grid-row:1 / span 2;min-width:0;align-self:stretch}
+.hostGrid>.hostLeaderboardCard{grid-column:1;grid-row:2;align-self:start}
+@media(max-width:900px){
+  .hostGrid{grid-template-columns:minmax(0, 1fr)}
+  .hostGrid>.hostControl,.hostGrid>.hostNewsPanel,.hostGrid>.hostLeaderboardCard{grid-column:1;grid-row:auto}
+  .hostNewsPaperList{max-height:760px!important}
+}
+
 /* Updated player login and registration entry point */
 .auth{position:relative;isolation:isolate;overflow:hidden;padding:40px 24px;background:radial-gradient(ellipse at 8% 54%,rgba(54,126,220,.09),transparent 32%),radial-gradient(ellipse at 92% 34%,rgba(54,126,220,.08),transparent 30%),linear-gradient(135deg,#f8fbff,#edf4fd);color:#0c1d3d}
 .authshell{position:relative;z-index:1;width:min(900px,100%)}
