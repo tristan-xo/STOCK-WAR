@@ -30,12 +30,11 @@ body{background:radial-gradient(circle at 80% -10%,rgba(97,218,251,.09),transpar
 @media(max-width:560px){.roundAnalytics{grid-template-columns:1fr}.finalRow{grid-template-columns:32px 1fr}.finalRow strong{grid-column:2}}
 
 /* Phase 5 — event-day operations and hardening */
-.opsGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.opsGrid>.card:nth-child(3),.opsGrid>.card:nth-child(4){grid-column:1/-1}
+.opsGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.opsGrid>.card:nth-child(3){grid-column:1/-1}
 .opsKpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.opsKpis>div{padding:12px;border:1px solid var(--line);border-radius:12px;background:#091728}.opsKpis b{display:block;font-size:24px}.opsKpis small{color:var(--muted)}
-.broadcast{display:flex;gap:12px;align-items:center;padding:11px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:14px;background:#0c1d30}.broadcast b{font-size:11px;letter-spacing:1px}.broadcast span{font-weight:700}.broadcast-warning{border-color:#6d5a1b;background:#2a2410}.broadcast-critical{border-color:#70303a;background:#2c1117}.broadcast-success{border-color:#1d624c;background:#0c2a21}
 .alert{margin-top:12px;padding:10px 12px;border-radius:10px;font-weight:700}.dangerAlert{background:#35131a;border:1px solid #71303a;color:#ff9aa5}
 .historyGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.historyItem{padding:11px;border:1px solid var(--line);border-radius:12px;background:#091728;display:flex;flex-direction:column;gap:4px}.historyItem strong{font-size:17px}.historyItem span{font-size:12px}
-@media(max-width:950px){.opsGrid{grid-template-columns:1fr}.opsGrid>.card:nth-child(3),.opsGrid>.card:nth-child(4){grid-column:auto}.historyGrid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:950px){.opsGrid{grid-template-columns:1fr}.opsGrid>.card:nth-child(3){grid-column:auto}.historyGrid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.opsKpis{grid-template-columns:repeat(2,1fr)}.historyGrid{grid-template-columns:repeat(2,1fr)}}
 
 /* Portfolio management */
@@ -166,10 +165,6 @@ p{line-height:1.6}
 .timerbar strong{color:var(--accent)!important}
 .timertrack{background:#e4e9ef!important}
 .timertrack span{background:var(--accent)!important}
-.broadcast{background:#f8fafc!important;border-color:var(--line)!important;color:var(--text)!important}
-.broadcast-warning{background:#fff8e6!important;border-color:#e7cb7c!important}
-.broadcast-critical{background:#fff0ef!important;border-color:#e4aaa5!important}
-.broadcast-success{background:#edf8f2!important;border-color:#b9dfcc!important}
 
 input,select,textarea,.inputLike{
   background:#fff!important;
@@ -1304,10 +1299,8 @@ body{
 }
 .timerbar{background:linear-gradient(90deg,#f4ead7,#fffdf7)!important}
 .timertrack{background:#e8dece!important}.timertrack span{background:var(--accent)!important}
-.broadcast{background:#f7f2e9!important;border-color:var(--line)!important;color:var(--text)!important}
-.broadcast-warning{background:#f8efd9!important;border-color:#e4cf9e!important}
-.broadcast-critical,.error,.alert.dangerAlert{background:#faece8!important;border-color:#e1b9ad!important;color:#8e3632!important}
-.broadcast-success,.notice{background:#eaf2e9!important;border-color:#c4d8bf!important;color:#315c42!important}
+.error,.alert.dangerAlert{background:#faece8!important;border-color:#e1b9ad!important;color:#8e3632!important}
+.notice{background:#eaf2e9!important;border-color:#c4d8bf!important;color:#315c42!important}
 input,select,textarea,.inputLike,.search,.authswitch,.tradeTabs{
   background:#fffdf7!important;border-color:var(--line)!important;color:var(--text)!important;
 }

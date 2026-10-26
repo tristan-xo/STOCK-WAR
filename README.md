@@ -112,7 +112,7 @@ This application is a simulation and does not place real stock-market orders.
 
 
 ## Phase 5
-Adds event-day operations: registration locking, live player presence, host broadcasts, player suspension/reactivation, round performance snapshots, and full event-package export. Run `npm install` after extraction so dependencies are synchronized.
+Adds event-day operations: registration locking, live player presence, player suspension/reactivation, round performance snapshots, and full event-package export. Run `npm install` after extraction so dependencies are synchronized.
 
 
 ## Portfolio Management System

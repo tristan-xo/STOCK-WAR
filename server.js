@@ -179,15 +179,6 @@ CREATE TABLE IF NOT EXISTS player_flags (
   resolved_at TEXT,
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE TABLE IF NOT EXISTS event_announcements (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  message TEXT NOT NULL,
-  severity TEXT NOT NULL DEFAULT 'info',
-  active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by INTEGER
-);
-
 CREATE TABLE IF NOT EXISTS round_snapshots (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -454,11 +445,8 @@ ensureColumn('users','visibility_events',"INTEGER NOT NULL DEFAULT 0");
 
 function state() { return db.prepare(`SELECT * FROM event_state WHERE id=1`).get(); }
 function nowMs(){ return Date.now(); }
-function latestAnnouncement(){
-  return db.prepare(`SELECT id,message,severity,created_at FROM event_announcements WHERE active=1 ORDER BY id DESC LIMIT 1`).get() || null;
-}
 function publicState(){
-  return {...state(),serverNow:nowMs(),newsSeconds:NEWS_SECONDS,tradeSeconds:TRADE_SECONDS,announcement:latestAnnouncement()};
+  return {...state(),serverNow:nowMs(),newsSeconds:NEWS_SECONDS,tradeSeconds:TRADE_SECONDS};
 }
 function touchPresence(req, hidden=null){
   const u=user(req); if(!u) return;
@@ -1168,7 +1156,6 @@ app.post("/api/admin/reset", requireAdmin, (req,res)=>{
     db.prepare(`DELETE FROM round_snapshots`).run();
     db.prepare(`DELETE FROM round_price_events`).run();
     db.prepare(`DELETE FROM market_news_events`).run();
-    db.prepare(`DELETE FROM event_announcements`).run();
     db.prepare(`DELETE FROM audit_logs`).run();
     db.prepare(`DELETE FROM users WHERE role='player'`).run();
     db.prepare(`UPDATE stocks SET price=base_price`).run();
@@ -1211,7 +1198,7 @@ app.get("/api/admin/operations", requireAdmin, (req,res)=>{
   const activePlayers=onlinePlayers.filter(x=>x.online).length;
   const suspended=onlinePlayers.filter(x=>x.status==='suspended').length;
   const snapshots=db.prepare(`SELECT COUNT(*) c FROM round_snapshots`).get().c;
-  res.json({state:st,registrationOpen:Boolean(st.registration_open),players:onlinePlayers,onlinePlayers:activePlayers,suspendedPlayers:suspended,snapshotCount:snapshots,announcement:latestAnnouncement(),costBasisMethod:st.cost_basis_method||DEFAULT_COST_BASIS});
+  res.json({state:st,registrationOpen:Boolean(st.registration_open),players:onlinePlayers,onlinePlayers:activePlayers,suspendedPlayers:suspended,snapshotCount:snapshots,costBasisMethod:st.cost_basis_method||DEFAULT_COST_BASIS});
 });
 
 app.post("/api/admin/registration", requireAdmin, (req,res)=>{
@@ -1221,21 +1208,6 @@ app.post("/api/admin/registration", requireAdmin, (req,res)=>{
   db.prepare(`UPDATE event_state SET registration_open=?,updated_at=CURRENT_TIMESTAMP WHERE id=1`).run(enabled?1:0);
   audit(req,enabled?'REGISTRATION_OPENED':'REGISTRATION_CLOSED',{});
   emitState();res.json({ok:true,state:state()});
-});
-
-app.post("/api/admin/announcement", requireAdmin, (req,res)=>{
-  const message=String(req.body?.message||'').trim().slice(0,300);
-  const severity=['info','warning','critical','success'].includes(req.body?.severity)?req.body.severity:'info';
-  if(!message)return res.status(400).json({error:"Announcement cannot be empty."});
-  db.prepare(`UPDATE event_announcements SET active=0 WHERE active=1`).run();
-  const info=db.prepare(`INSERT INTO event_announcements(message,severity,created_by) VALUES(?,?,?)`).run(message,severity,user(req).id);
-  audit(req,'BROADCAST',{announcementId:Number(info.lastInsertRowid),severity,message});
-  emitState();res.json({ok:true,announcement:latestAnnouncement()});
-});
-app.post("/api/admin/announcement/clear", requireAdmin, (req,res)=>{
-  db.prepare(`UPDATE event_announcements SET active=0 WHERE active=1`).run();
-  audit(req,'BROADCAST_CLEARED',{});
-  emitState();res.json({ok:true});
 });
 
 app.post("/api/admin/player/:id/status", requireAdmin, (req,res)=>{
@@ -1266,8 +1238,7 @@ app.get("/api/admin/export-event", requireAdmin, (req,res)=>{
     trades:db.prepare(`SELECT t.*,u.name,u.username,s.symbol,s.name stock_name FROM trades t JOIN users u ON u.id=t.user_id JOIN stocks s ON s.id=t.stock_id ORDER BY t.id`).all(),
     snapshots:db.prepare(`SELECT * FROM round_snapshots ORDER BY round_id,user_id`).all(),
     flags:db.prepare(`SELECT f.*,u.name,u.username FROM player_flags f JOIN users u ON u.id=f.user_id ORDER BY f.id`).all(),
-    audit:db.prepare(`SELECT * FROM audit_logs ORDER BY id`).all(),
-    announcements:db.prepare(`SELECT * FROM event_announcements ORDER BY id`).all()
+    audit:db.prepare(`SELECT * FROM audit_logs ORDER BY id`).all()
   };
   res.setHeader('Content-Disposition',`attachment; filename="stock-wars-event-${Date.now()}.json"`);
   res.json(payload);

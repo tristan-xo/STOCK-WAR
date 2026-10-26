@@ -6,7 +6,7 @@
 - 2-minute trading countdown
 - Automatic transition from news → trading → locked
 - Host pause/resume retained
-- News announcement overlay
+- Market news briefing overlay
 - Stock price charts
 - Hidden future news and impact percentages
 - Server-authoritative trade timing and pricing

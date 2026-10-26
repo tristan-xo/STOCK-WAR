@@ -17,12 +17,6 @@ Phase 5 turns the project into an event-day operations platform.
 - Visible/hidden tab state.
 - Visibility-event count.
 
-### Host broadcast
-- Host can send a synchronized announcement to every connected portal.
-- Info / success / warning / critical severity.
-- Clear active announcement.
-- Announcement appears above the synchronized timer.
-
 ### Player account control
 - Host can suspend/reactivate a player's trading access.
 - Suspended players can still view the event but cannot submit trades.
@@ -50,7 +44,6 @@ Host Operations includes a one-click JSON export containing:
 - Round snapshots
 - Flags
 - Audit history
-- Announcements
 
 ## Existing controls preserved
 - Server-authoritative 2-minute news window
