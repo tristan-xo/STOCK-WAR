@@ -432,7 +432,7 @@ async function loadHostSnapshot(){
     const playerRows=players.slice().sort((a,b)=>Number(b.online)-Number(a.online)||String(a.name).localeCompare(String(b.name))).slice(0,8);
     const moveRows=rows=>rows.map(s=>{const up=s.change>=0;return `<div class="hostSnapshotRow"><div><b>${esc(s.symbol)}</b><small>${esc(s.name||s.sector||'')}</small></div><strong>${money(s.price)}</strong><span class="${up?'green':'red'}">${up?'+':''}${s.change.toFixed(2)}%</span></div>`}).join('')||'<div class="empty">No stock data available.</div>';
     const playerMarkup=playerRows.map(p=>`<div class="hostSnapshotPlayer"><div class="hostPresenceDot ${p.online?'online':'offline'}"></div><div class="hostSnapshotPlayerName"><b>${esc(p.name)}</b><small>${esc(p.playerId||('STW-'+String(p.id).padStart(3,'0')))} · ${esc(p.username)}</small></div><span class="pill ${p.status==='suspended'?'paused':p.online?'live':''}">${p.status==='suspended'?'Suspended':p.online?'Online':'Offline'}</span><button class="btn secondary tiny" onclick="viewPlayer(${Number(p.id)})">View</button></div>`).join('')||'<div class="empty">No players registered yet.</div>';
-    const host=document.createElement('div');host.className='hostSnapshotGrid';host.innerHTML=`
+    const host=root.querySelector('.hostSnapshotGrid')||document.createElement('div');host.className='hostSnapshotGrid';host.innerHTML=`
       <section class="card hostSnapshotCard">
         <div class="sectionHead"><div><span class="eyebrow">PARTICIPANT MONITOR</span><h2>Live Player Monitoring</h2></div><button class="btn secondary tiny" onclick="adminTab='operations';adminPage()">Full details</button></div>
         <div class="hostSnapshotStats"><div><b>${players.length}</b><small>Registered</small></div><div><b>${online.length}</b><small>Online now</small></div><div><b>${ops.suspendedPlayers||0}</b><small>Suspended</small></div></div>
@@ -443,7 +443,7 @@ async function loadHostSnapshot(){
         <div class="hostMoverColumns"><div><h3>Top gainers</h3>${moveRows(gainers)}</div><div><h3>Top decliners</h3>${moveRows(losers)}</div></div>
         <div class="muted hostSnapshotFoot">Price change measured against each stock's base price · Refreshes every 15 seconds</div>
       </section>`;
-    root.appendChild(host);
+    if(!host.isConnected)root.appendChild(host);
   }catch(e){
     const root=$('#admin');if(root&&!root.querySelector('.hostSnapshotError'))root.insertAdjacentHTML('beforeend','<div class="notice hostSnapshotError">Live host snapshot is temporarily unavailable. The main dashboard remains active.</div>');
   }
