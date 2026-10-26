@@ -1405,3 +1405,35 @@ label{color:#514637!important}
 .impactRoundControls select{min-width:190px;padding:8px 11px;border:1px solid #d8cdbb;border-radius:9px;background:#fffdf7;color:#1a2740;font-weight:700}
 .impactRoundControls span{color:#71695d;font-size:12px}
 #impactResults tbody tr[hidden]{display:none!important}
+
+/* Top-player analytics and stock allocation pie charts */
+.phase4Grid{align-items:start}
+.phase4Grid>.card.phase4TopAnalysis,.phase4Grid>.card.phase4RoundActivity{grid-column:1/-1}
+.phase4Grid>.card.phase4Sectors{grid-column:auto}
+.playerAnalysisGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.playerAnalysisCard{min-width:0;padding:15px;background:var(--panel,#fffdf8)}
+.playerAnalysisHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.playerAnalysisHeader h3{margin:4px 0 0;font-size:19px;overflow-wrap:anywhere}
+.playerPlace{flex:0 0 auto;padding:6px 9px;border:1px solid #dfcba9;border-radius:999px;background:#f6eddd;color:#785323;font-size:11px;font-weight:900}
+.playerAnalysisMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 15px}
+.playerAnalysisMetrics>div{min-width:0;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--panel2,#f8f2e8)}
+.playerAnalysisMetrics small,.playerAnalysisMetrics b{display:block}
+.playerAnalysisMetrics small{font-size:10px;color:var(--muted);line-height:1.35}
+.playerAnalysisMetrics b{margin-top:4px;font-size:14px;overflow-wrap:anywhere}
+.playerAnalysisMetrics b>span{font-size:14px}
+.playerAnalysisMetrics b small{margin-top:3px;font-weight:500}
+.allocationBlock{padding-top:11px;border-top:1px solid var(--line)}
+.allocationHeading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:11px}
+.allocationHeading b{font-size:12px}
+.allocationHeading small{color:var(--muted);font-size:10px}
+.playerAllocation{display:grid;grid-template-columns:132px minmax(0,1fr);align-items:center;gap:14px;min-height:132px}
+.allocationPie{width:132px;height:132px;border:4px solid var(--panel);border-radius:50%;box-shadow:0 0 0 1px var(--line);flex:0 0 auto}
+.allocationLegend{display:grid;grid-template-columns:1fr;gap:4px;max-height:150px;overflow:auto;padding-right:3px}
+.allocationLegendItem{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:4px 7px;padding:3px 2px;font-size:10px}
+.allocationLegendItem i{grid-row:1/3;width:9px;height:9px;border-radius:3px}
+.allocationLegendItem span{grid-column:2;grid-row:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}
+.allocationLegendItem b{grid-column:3;grid-row:1;font-size:10px}
+.allocationLegendItem small{grid-column:2/4;grid-row:2;color:var(--muted);font-size:9px}
+.playerAllocationEmpty{display:grid;place-items:center;min-height:132px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:12px}
+@media(max-width:760px){.playerAnalysisGrid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){.playerAnalysisMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.playerAllocation{grid-template-columns:105px minmax(0,1fr);gap:10px}.allocationPie{width:105px;height:105px}.allocationHeading{align-items:flex-start;flex-direction:column;gap:3px}}

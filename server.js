@@ -1310,10 +1310,14 @@ app.post("/api/admin/presentation", requireAdmin, (req,res)=>{
 });
 app.get("/api/admin/phase4-analytics", requireAdmin, (req,res)=>{
   const rankings=finalRankings();
+  const tradeCounts=Object.fromEntries(db.prepare(`SELECT user_id,
+    SUM(CASE WHEN side='BUY' THEN 1 ELSE 0 END) AS buys,
+    SUM(CASE WHEN side='SELL' THEN 1 ELSE 0 END) AS sells
+    FROM trades GROUP BY user_id`).all().map(x=>[x.user_id,{buys:Number(x.buys)||0,sells:Number(x.sells)||0}]));
   const rounds=db.prepare(`SELECT id,status,news_title,applied_at FROM rounds ORDER BY id`).all();
   const sectorMovement=db.prepare(`SELECT sector,COUNT(*) stocks,ROUND(AVG((price-base_price)/base_price*100),2) movement_pct,ROUND(MIN((price-base_price)/base_price*100),2) min_pct,ROUND(MAX((price-base_price)/base_price*100),2) max_pct FROM stocks GROUP BY sector ORDER BY movement_pct DESC`).all();
   const roundTrades=db.prepare(`SELECT round_id,side,COUNT(*) trades,COALESCE(SUM(total),0) value,COALESCE(SUM(quantity),0) volume FROM trades GROUP BY round_id,side ORDER BY round_id,side`).all();
-  res.json({rankings,rounds,sectorMovement,roundTrades,state:publicState()});
+  res.json({rankings,tradeCounts,rounds,sectorMovement,roundTrades,state:publicState()});
 });
 
 app.get("*",(req,res)=>{
