@@ -1073,10 +1073,7 @@ app.get("/api/admin/impacts", requireAdmin, (req,res)=>{
 });
 
 app.post("/api/admin/impact", requireAdmin, (req,res)=>{
-  const roundId=Number(req.body.roundId), stockId=Number(req.body.stockId), impact=Number(req.body.impactPct);
-  if(roundId<1||roundId>6||!Number.isFinite(impact)||impact<-100||impact>100) return res.status(400).json({error:"Invalid impact."});
-  db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=excluded.impact_pct`).run(roundId,stockId,impact);
-  res.json({ok:true});
+  res.status(405).json({error:"Price impacts are generated automatically and cannot be edited."});
 });
 
 app.post("/api/admin/news", requireAdmin, (req,res)=>{
