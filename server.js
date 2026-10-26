@@ -1245,9 +1245,10 @@ app.get("/api/admin/export-event", requireAdmin, (req,res)=>{
 });
 
 app.get("/api/admin/news-engine", requireAdmin, (req,res)=>{
-  const rounds=db.prepare(`SELECT r.id,r.status,r.news_title,r.news_body,r.news_impact_note,r.released_at,r.applied_at,m.id news_event_id,m.category,m.sentiment,m.scope,m.target_sector,m.impact_pct,m.generated_at FROM rounds r LEFT JOIN market_news_events m ON m.round_id=r.id ORDER BY r.id`).all();
+  const rounds=db.prepare(`SELECT id,status,news_title,news_body,news_impact_note,released_at,applied_at FROM rounds ORDER BY id`).all();
+  const stories=db.prepare(`SELECT id,round_id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events ORDER BY round_id,id`).all();
   const causal=db.prepare(`SELECT pe.round_id,s.symbol,s.name,s.sector,pe.old_price,pe.new_price,pe.impact_pct,pe.created_at FROM round_price_events pe JOIN stocks s ON s.id=pe.stock_id ORDER BY pe.id`).all();
-  res.json({autoNews:AUTO_NEWS,rounds,causal});
+  res.json({autoNews:AUTO_NEWS,rounds,stories,causal});
 });
 
 app.get("/api/admin/overview", requireAdmin, (req,res)=>{
