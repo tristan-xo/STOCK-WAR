@@ -1386,3 +1386,8 @@ label{color:#514637!important}
 .causalStory .causalMeta{margin-top:11px}
 .causalStory .causalMeta span{color:#655b4e;background:#f7f0e5;border-color:#e5d9c6}
 @media(max-width:700px){.causalStories{grid-template-columns:minmax(0,1fr)}}
+.impactRoundControls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 12px}
+.impactRoundControls label{color:#655b4e;font-size:12px;font-weight:800}
+.impactRoundControls select{min-width:190px;padding:8px 11px;border:1px solid #d8cdbb;border-radius:9px;background:#fffdf7;color:#1a2740;font-weight:700}
+.impactRoundControls span{color:#71695d;font-size:12px}
+#impactResults tbody tr[hidden]{display:none!important}
