@@ -493,18 +493,19 @@ async function downloadEventExport(){try{const r=await fetch('/api/admin/export-
 async function togglePlayerStatus(id,status){const action=status==='suspended'?'suspend':'reactivate';if(status==='suspended'&&!confirm('Suspend this player\'s trading access?'))return;try{await api('/api/admin/player/'+id+'/status',{method:'POST',body:JSON.stringify({status})});toast(action==='suspend'?'Player suspended':'Player reactivated');adminPlayers()}catch(e){toast(e.message)}}
 const portfolioChartColors=['#315f83','#bf7e2c','#43856b','#b64e43','#76639b','#448e8b','#d1a245','#6c7788'];
 function playerAllocationMarkup(player){
-  const holdings=(player.holdings||[]).map(h=>({symbol:h.symbol,value:Number(h.market_value)||0})).filter(h=>h.value>0).sort((a,b)=>b.value-a.value);
-  const grouped=holdings.map(h=>({...h,label:h.symbol}));
+  const sectorValues=new Map();
+  for(const holding of player.holdings||[]){const value=Number(holding.market_value)||0;if(value<=0)continue;const sector=String(holding.sector||'Other');sectorValues.set(sector,(sectorValues.get(sector)||0)+value)}
+  const grouped=[...sectorValues].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
   const total=grouped.reduce((sum,h)=>sum+h.value,0);
-  if(!total)return '<div class="playerAllocationEmpty">No stock holdings yet</div>';
+  if(!total)return '<div class="playerAllocationEmpty">No sector exposure yet</div>';
   let cursor=0;
   const segments=grouped.map((h,i)=>{const start=cursor/total*100;cursor+=h.value;return `${portfolioChartColors[i%portfolioChartColors.length]} ${start.toFixed(2)}% ${(cursor/total*100).toFixed(2)}%`}).join(',');
   const legend=grouped.map((h,i)=>{const share=h.value/total*100;return `<div class="allocationLegendItem"><i style="background:${portfolioChartColors[i%portfolioChartColors.length]}"></i><span>${esc(h.label)}</span><b>${share.toFixed(1)}%</b><small>${money(h.value)}</small></div>`}).join('');
-  return `<div class="playerAllocation"><div class="allocationPie" style="background:conic-gradient(${segments})" role="img" aria-label="Stock diversification by portfolio market value"></div><div class="allocationLegend">${legend}</div></div>`;
+  return `<div class="playerAllocation"><div class="allocationPie" style="background:conic-gradient(${segments})" role="img" aria-label="Sector diversification by portfolio market value"></div><div class="allocationLegend">${legend}</div></div>`;
 }
 function playerAnalysisCard(player,place,tradeCounts){
   const trades=tradeCounts?.[player.id]||{buys:0,sells:0};
-  return `<article class="card playerAnalysisCard"><div class="playerAnalysisHeader"><div><span class="eyebrow">${place===1?'1ST PLACE':'2ND PLACE'} · ${esc(player.playerId)}</span><h3>${esc(player.name)}</h3></div><span class="playerPlace">${place===1?'🥇':'🥈'} #${place}</span></div><div class="playerAnalysisMetrics"><div><small>Portfolio</small><b>${money(player.total)}</b></div><div><small>Profit / Loss</small><b>${pnl(player.profit)}</b></div><div><small>Cash</small><b>${money(player.cash)}</b></div><div><small>Stocks held</small><b>${player.holdings?.length||0}</b></div><div><small>Total trades</small><b>${player.tradeCount}</b><small>${trades.buys} buys · ${trades.sells} sells</small></div><div><small>Stock value</small><b>${money(player.marketValue)}</b></div></div><div class="allocationBlock"><div class="allocationHeading"><b>Stock diversification</b><small>Share of invested portfolio</small></div>${playerAllocationMarkup(player)}</div></article>`;
+  return `<article class="card playerAnalysisCard"><div class="playerAnalysisHeader"><div><span class="eyebrow">${place===1?'1ST PLACE':'2ND PLACE'} · ${esc(player.playerId)}</span><h3>${esc(player.name)}</h3></div><span class="playerPlace">${place===1?'🥇':'🥈'} #${place}</span></div><div class="playerAnalysisMetrics"><div><small>Portfolio</small><b>${money(player.total)}</b></div><div><small>Profit / Loss</small><b>${pnl(player.profit)}</b></div><div><small>Cash</small><b>${money(player.cash)}</b></div><div><small>Stocks held</small><b>${player.holdings?.length||0}</b></div><div><small>Total trades</small><b>${player.tradeCount}</b><small>${trades.buys} buys · ${trades.sells} sells</small></div><div><small>Stock value</small><b>${money(player.marketValue)}</b></div></div><div class="allocationBlock"><div class="allocationHeading"><b>Sector diversification</b><small>Share of invested portfolio</small></div>${playerAllocationMarkup(player)}</div></article>`;
 }
 async function adminAnalytics(){
   const d=await api('/api/admin/phase4-analytics');
