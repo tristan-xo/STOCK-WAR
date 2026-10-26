@@ -1148,12 +1148,12 @@ table th,table td{line-height:1.45}
   grid-template-columns:minmax(0, 1.8fr) minmax(280px, .9fr);
   align-items:start;
 }
-.hostGrid>.hostControl{grid-column:1;grid-row:1;align-self:start}
-.hostGrid>.hostNewsPanel{grid-column:2;grid-row:1 / span 2;min-width:0;align-self:stretch}
-.hostGrid>.hostLeaderboardCard{grid-column:1;grid-row:2;align-self:start}
+.hostGrid>.card.hostControl{grid-column:1;grid-row:1;align-self:start}
+.hostGrid>.card.hostNewsPanel{grid-column:2;grid-row:1 / span 2;min-width:0;align-self:stretch}
+.hostGrid>.card.hostLeaderboardCard{grid-column:1;grid-row:2;align-self:start}
 @media(max-width:900px){
   .hostGrid{grid-template-columns:minmax(0, 1fr)}
-  .hostGrid>.hostControl,.hostGrid>.hostNewsPanel,.hostGrid>.hostLeaderboardCard{grid-column:1;grid-row:auto}
+  .hostGrid>.card.hostControl,.hostGrid>.card.hostNewsPanel,.hostGrid>.card.hostLeaderboardCard{grid-column:1;grid-row:auto}
   .hostNewsPaperList{max-height:760px!important}
 }
 
