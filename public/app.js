@@ -222,7 +222,7 @@ async function playerPage(){
   });
   const paperArt=(n,i,featured=false)=>`<div class='newsroomArt newsroomArt${i%4}${featured?' newsroomArtFeatured':''}' aria-hidden='true'><img class='newsroomPhoto' src='${paperImageByStory.get(n)||paperImagePools.market[0]}' alt='' loading='lazy' decoding='async'></div>`;
   const paperStory=(n,i)=>`<article class='newsroomStory'>${paperArt(n,i)}<div class='newsroomStoryText'><div class='newsroomMeta'><span>MARKET DESK</span></div><h4>${paperHeadline(n)}</h4><p>${paperBody(n)}</p></div></article>`;
-  shell(`<div class="playerLayout"><aside class="playerNav" aria-label="Player sections"><button type="button" class="playerNavItem" data-section="news" onclick="selectPlayerSection('news')">News</button><button type="button" class="playerNavItem" data-section="trading" onclick="selectPlayerSection('trading')">Trading Window</button><button type="button" class="playerNavItem" data-section="portfolio" onclick="selectPlayerSection('portfolio')">Portfolio</button></aside><main class="playerContent">
+  shell(`<div id="hostTicker" class="hostTicker playerMarketTicker" aria-label="Live market ticker"><div class="hostTickerLabel">MARKET WATCH</div><div class="hostTickerViewport"><div class="hostTickerTrack"><span class="hostTickerItem">Loading market prices…</span></div></div></div><div class="playerLayout"><aside class="playerNav" aria-label="Player sections"><button type="button" class="playerNavItem" data-section="news" onclick="selectPlayerSection('news')">News</button><button type="button" class="playerNavItem" data-section="trading" onclick="selectPlayerSection('trading')">Trading Window</button><button type="button" class="playerNavItem" data-section="portfolio" onclick="selectPlayerSection('portfolio')">Portfolio</button></aside><main class="playerContent">
   <section id="player-news" class="playerSection">
   <section class='newsroomPaper'>
     <header class='newsroomMasthead'><div class='newsroomMark'>SW</div><div class='newsroomBrand'><h2>STOCK WARS DAILY</h2><small>PORTFOLIO MANAGEMENT · MARKET EDITION</small></div><div class='newsroomRound'><b>ROUND ${STATE.current_round||'—'}</b><span>${STATE.event_status==='paused'?'BRIEFING PAUSED':STATE.phase==='news'?'MARKET BRIEFING':STATE.phase==='trading'?'MARKET OPEN':'BETWEEN ROUNDS'}</span></div></header>
@@ -242,6 +242,7 @@ async function playerPage(){
   <div class="card c12"><div class="sectionHead"><div><span class="eyebrow">PERFORMANCE</span><h2>Round History</h2></div><span class="muted">End-of-round snapshots</span></div><div id="roundHistory"></div></div>
   <div class="card c12"><div class="sectionHead"><div><span class="eyebrow">LIVE RANKING</span><h2>Leaderboard</h2></div><span class="muted">Updates automatically</span></div><div id="leaderboard"></div></div></div></section></main></div><div id="stockModal"></div>`, 'Stock Wars','Player Trading Terminal');
   selectPlayerSection(playerSection);
+  if(!hostTickerClock){loadHostTicker();hostTickerClock=setInterval(loadHostTicker,15000)}
   await renderPlayerData(can,d);
   if(renderSeq===playerRenderSeq)await restorePlayerScroll(effectiveScroll);
   updateTimer();

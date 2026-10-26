@@ -1468,3 +1468,5 @@ label{color:#514637!important}
 .playerSection[hidden]{display:none!important}
 .playerSection>.grid{margin-top:0}
 @media(max-width:650px){.playerLayout{margin-top:12px}.playerNav{width:100%;padding:7px}.playerNavItem{flex-basis:110px;padding:10px 8px;font-size:13px}}
+.playerMarketTicker{margin-bottom:12px}
+.playerMarketTicker+.playerLayout{margin-top:0}
