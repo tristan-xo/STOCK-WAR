@@ -1259,6 +1259,15 @@ app.get("/api/admin/overview", requireAdmin, (req,res)=>{
   res.json({state:st,playerCount,tradeCount,round:r,newsEvents,timing:{newsSeconds:NEWS_SECONDS,tradeSeconds:TRADE_SECONDS}});
 });
 
+app.get("/api/admin/projection", requireAdmin, (req,res)=>{
+  const st=state();
+  const newsEvents=st.current_round
+    ? db.prepare(`SELECT id,target_sector,headline,body FROM market_news_events WHERE round_id=? ORDER BY id`).all(st.current_round)
+    : [];
+  const rankings=finalRankings().slice(0,2).map(p=>({name:p.name,rank:p.rank}));
+  res.json({state:st,newsEvents,rankings});
+});
+
 
 app.get("/api/admin/analytics", requireAdmin, (req,res)=>{
   const players=db.prepare(`SELECT id,name,username,created_at FROM users WHERE role='player'`).all();
