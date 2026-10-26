@@ -1437,3 +1437,23 @@ label{color:#514637!important}
 .playerAllocationEmpty{display:grid;place-items:center;min-height:132px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:12px}
 @media(max-width:760px){.playerAnalysisGrid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:520px){.playerAnalysisMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.playerAllocation{grid-template-columns:105px minmax(0,1fr);gap:10px}.allocationPie{width:105px;height:105px}.allocationHeading{align-items:flex-start;flex-direction:column;gap:3px}}
+
+/* Finale winner podium for the first two players */
+.finaleControl>.finalePodiumCard{grid-column:1/-1}
+.winnerPodium{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:end;gap:18px;width:min(900px,100%);margin:18px auto 0}
+.winnerPodiumPlace{display:flex;flex-direction:column;align-items:center;min-width:0;text-align:center}
+.winnerPodiumPlace.second{grid-column:1;grid-row:1}
+.winnerPodiumPlace.first{grid-column:2;grid-row:1}
+.podiumTrophy{height:76px;font-size:58px;line-height:1.15;filter:drop-shadow(0 5px 4px rgba(72,52,24,.15))}
+.winnerPodiumPlace.second .podiumTrophy{filter:grayscale(.7) drop-shadow(0 5px 4px rgba(45,48,52,.14))}
+.podiumBlock{position:relative;width:100%;min-height:230px;padding:22px 18px 28px;border:1px solid #d7c6a5;border-radius:16px 16px 8px 8px;background:linear-gradient(160deg,#f8f4eb,#e7e5df);box-shadow:0 12px 24px rgba(72,52,24,.1)}
+.winnerPodiumPlace.second .podiumBlock{min-height:205px;border-color:#c9cbd0;background:linear-gradient(160deg,#fff,#e3e4e5)}
+.winnerPodiumPlace.first .podiumBlock{min-height:250px;border-color:#d3a44b;background:linear-gradient(160deg,#fff3c7,#e9ba5a);box-shadow:0 16px 30px rgba(157,106,24,.17)}
+.podiumLabel{display:inline-flex;padding:8px 15px;border:1px solid #d3a44b;border-radius:9px;background:#fff9e9;color:#875716;font-size:12px;font-weight:950;letter-spacing:.08em}
+.winnerPodiumPlace.second .podiumLabel{border-color:#bec1c7;background:#f7f7f7;color:#535966}
+.podiumBlock h3{margin:13px 0 6px;color:#18243a;font-size:22px;overflow-wrap:anywhere}
+.podiumPortfolio{display:block;color:#17233b;font-size:28px;font-weight:950;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.podiumProfit{margin-top:8px;color:#5f6874;font-size:12px;font-weight:700}
+.podiumProfit .green,.podiumProfit .red{font-weight:900}
+@media(max-width:760px){.winnerPodium{grid-template-columns:minmax(0,1fr);max-width:520px;gap:14px}.winnerPodiumPlace.first,.winnerPodiumPlace.second{grid-column:1;grid-row:auto}.winnerPodiumPlace.first{order:-1}.winnerPodiumPlace.first .podiumBlock,.winnerPodiumPlace.second .podiumBlock{min-height:0}.podiumTrophy{height:62px;font-size:48px}}
+@media(max-width:520px){.podiumBlock{padding:18px 14px 23px}.podiumPortfolio{font-size:24px}.podiumBlock h3{font-size:20px}}
