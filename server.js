@@ -833,8 +833,8 @@ function remainingLotAverage(userId,stockId){
 app.post("/api/auth/register", (req,res) => {
   const {name,username,password} = req.body;
   const st=state();
-  if(!Number(st.registration_open) || st.current_round>0 || st.event_status!=='registration') return res.status(403).json({error:"Player registration is closed. Please contact the host."});
-  if (!name || !username || !password || password.length < 4) return res.status(400).json({error:"Name, username and password (4+ chars) are required."});
+  if(!Number(st.registration_open) || st.current_round>0 || st.event_status!=='registration') return res.status(403).json({error:"Team registration is closed. Please contact the host."});
+  if (!name || !username || !password || password.length < 4) return res.status(400).json({error:"Team name, username and password (4+ chars) are required."});
   try {
     const hash = bcrypt.hashSync(password,10);
     const info = db.prepare(`INSERT INTO users(username,password_hash,role,name) VALUES(?,?, 'player',?)`).run(username.trim().toLowerCase(),hash,name.trim());
@@ -851,12 +851,12 @@ app.post("/api/auth/player-login", (req,res) => {
   const {username,password} = req.body;
   const normalized=(username||"").trim().toLowerCase();
   const u = db.prepare(`SELECT * FROM users WHERE username=?`).get(normalized);
-  if (!u || !bcrypt.compareSync(password||"",u.password_hash)) return res.status(401).json({error:"Invalid player username or password."});
+  if (!u || !bcrypt.compareSync(password||"",u.password_hash)) return res.status(401).json({error:"Invalid team username or password."});
   if (u.role !== 'player') {
     audit(req,'PLAYER_LOGIN_REJECTED',{username:normalized,role:u.role});
-    return res.status(403).json({error:"Host credentials cannot be used in the Player Login. Please use Host / Admin Login."});
+    return res.status(403).json({error:"Team credentials cannot be used in Team Login. Please use Host / Admin Login."});
   }
-  if ((u.status||'active') === 'suspended') return res.status(403).json({error:"This player account is suspended by the host."});
+  if ((u.status||'active') === 'suspended') return res.status(403).json({error:"This team account is suspended by the host."});
   req.session.user = {id:u.id,username:u.username,role:'player',name:u.name,status:u.status||'active'};
   touchPresence(req);
   audit(req,'PLAYER_LOGIN',{role:'player'});
@@ -934,7 +934,7 @@ app.get("/api/rounds", requireLogin, (req,res)=>{
 });
 
 app.get("/api/player/dashboard", requireLogin, (req,res)=>{
-  if (user(req).role !== "player") return res.status(403).json({error:"Player access required"});
+  if (user(req).role !== "player") return res.status(403).json({error:"Team account access required"});
   const p=portfolio(user(req).id);
   const trades=db.prepare(`
     SELECT t.*,s.symbol,s.name FROM trades t JOIN stocks s ON s.id=t.stock_id
@@ -954,7 +954,7 @@ app.get("/api/player/dashboard", requireLogin, (req,res)=>{
 });
 
 app.post("/api/player/trade", requireLogin, (req,res)=>{
-  if (user(req).role !== "player") return res.status(403).json({error:"Player access required"});
+  if (user(req).role !== "player") return res.status(403).json({error:"Team account access required"});
   const accountUser=db.prepare(`SELECT status FROM users WHERE id=?`).get(user(req).id);
   if(accountUser?.status==='suspended') return res.status(403).json({error:"Your trading account has been suspended by the host."});
   touchPresence(req);
@@ -1013,7 +1013,7 @@ app.post("/api/player/trade", requireLogin, (req,res)=>{
 });
 
 app.get("/api/player/quote", requireLogin, (req,res)=>{
-  if(user(req).role!=='player') return res.status(403).json({error:'Player access required'});
+  if(user(req).role!=='player') return res.status(403).json({error:'Team account access required'});
   try{
     const stock=db.prepare(`SELECT * FROM stocks WHERE id=?`).get(Number(req.query.stockId));
     const side=String(req.query.side||'BUY').toUpperCase();
@@ -1025,13 +1025,13 @@ app.get("/api/player/quote", requireLogin, (req,res)=>{
 });
 
 app.get("/api/player/transactions", requireLogin, (req,res)=>{
-  if(user(req).role!=='player') return res.status(403).json({error:'Player access required'});
+  if(user(req).role!=='player') return res.status(403).json({error:'Team account access required'});
   const rows=db.prepare(`SELECT t.id,t.created_at,t.side,t.quantity,t.price,t.total,t.order_type,t.limit_price,t.fee,t.net_total,t.realized_pnl,t.round_id,s.symbol,s.name
     FROM trades t JOIN stocks s ON s.id=t.stock_id WHERE t.user_id=? ORDER BY t.id DESC LIMIT 500`).all(user(req).id);
   res.json({transactions:rows,costBasisMethod:state().cost_basis_method||DEFAULT_COST_BASIS});
 });
 app.get("/api/player/export-transactions", requireLogin, (req,res)=>{
-  if(user(req).role!=='player') return res.status(403).json({error:'Player access required'});
+  if(user(req).role!=='player') return res.status(403).json({error:'Team account access required'});
   // Final player export intentionally contains only the four requested fields.
   // The execution price is the actual price recorded for that transaction.
   const rows=db.prepare(`SELECT t.round_id,s.name,t.price,t.quantity
@@ -1063,7 +1063,7 @@ app.get("/api/admin/players", requireAdmin, (req,res)=>{
 
 app.get("/api/admin/player/:id", requireAdmin, (req,res)=>{
   const p=db.prepare(`SELECT id,name,username,created_at FROM users WHERE id=? AND role='player'`).get(Number(req.params.id));
-  if(!p) return res.status(404).json({error:"Player not found"});
+  if(!p) return res.status(404).json({error:"Team not found"});
   res.json({...p,...portfolio(p.id),trades:db.prepare(`SELECT t.*,s.symbol,s.name FROM trades t JOIN stocks s ON s.id=t.stock_id WHERE t.user_id=? ORDER BY t.id DESC`).all(p.id)});
 });
 
@@ -1210,7 +1210,7 @@ app.post("/api/admin/registration", requireAdmin, (req,res)=>{
 app.post("/api/admin/player/:id/status", requireAdmin, (req,res)=>{
   const id=Number(req.params.id), status=req.body?.status==='suspended'?'suspended':'active';
   const p=db.prepare(`SELECT id,name,status FROM users WHERE id=? AND role='player'`).get(id);
-  if(!p)return res.status(404).json({error:"Player not found"});
+  if(!p)return res.status(404).json({error:"Team not found"});
   db.prepare(`UPDATE users SET status=? WHERE id=?`).run(status,id);
   audit(req,status==='suspended'?'PLAYER_SUSPENDED':'PLAYER_REACTIVATED',{userId:id});
   res.json({ok:true,status});
@@ -1219,7 +1219,7 @@ app.post("/api/admin/player/:id/status", requireAdmin, (req,res)=>{
 app.get("/api/admin/player/:id/history", requireAdmin, (req,res)=>{
   const id=Number(req.params.id);
   const p=db.prepare(`SELECT id,name,username,status FROM users WHERE id=? AND role='player'`).get(id);
-  if(!p)return res.status(404).json({error:"Player not found"});
+  if(!p)return res.status(404).json({error:"Team not found"});
   const history=db.prepare(`SELECT round_id,total,cash,market_value,profit,created_at FROM round_snapshots WHERE user_id=? ORDER BY round_id`).all(id);
   res.json({player:{...p,playerId:`STW-${String(p.id).padStart(3,'0')}`},history});
 });
@@ -1286,7 +1286,7 @@ app.get("/api/admin/analytics", requireAdmin, (req,res)=>{
   res.json({state:publicState(),players:ranked,sectors,stocks,rounds,suspicious});
 });
 app.get("/api/admin/flags", requireAdmin, (req,res)=>{res.json(db.prepare(`SELECT f.*,u.name,u.username FROM player_flags f JOIN users u ON u.id=f.user_id WHERE f.status='open' ORDER BY f.id DESC`).all());});
-app.post("/api/admin/flag-player", requireAdmin, (req,res)=>{const id=Number(req.body.userId),reason=String(req.body.reason||'Manual host review').slice(0,500),severity=['low','medium','high'].includes(req.body.severity)?req.body.severity:'medium';if(!db.prepare(`SELECT id FROM users WHERE id=? AND role='player'`).get(id))return res.status(404).json({error:'Player not found'});db.prepare(`INSERT INTO player_flags(user_id,severity,reason) VALUES(?,?,?)`).run(id,severity,reason);audit(req,'PLAYER_FLAGGED',{userId:id,severity,reason});res.json({ok:true});});
+app.post("/api/admin/flag-player", requireAdmin, (req,res)=>{const id=Number(req.body.userId),reason=String(req.body.reason||'Manual host review').slice(0,500),severity=['low','medium','high'].includes(req.body.severity)?req.body.severity:'medium';if(!db.prepare(`SELECT id FROM users WHERE id=? AND role='player'`).get(id))return res.status(404).json({error:'Team not found'});db.prepare(`INSERT INTO player_flags(user_id,severity,reason) VALUES(?,?,?)`).run(id,severity,reason);audit(req,'PLAYER_FLAGGED',{userId:id,severity,reason});res.json({ok:true});});
 app.post("/api/admin/flags/:id/resolve", requireAdmin, (req,res)=>{db.prepare(`UPDATE player_flags SET status='resolved',resolved_at=CURRENT_TIMESTAMP WHERE id=?`).run(Number(req.params.id));audit(req,'FLAG_RESOLVED',{flagId:Number(req.params.id)});res.json({ok:true});});
 app.get("/api/admin/export", requireAdmin, (req,res)=>{const type=req.query.type||'leaderboard';if(type==='trades')return res.json({type,rows:db.prepare(`SELECT t.id,u.name,u.username,s.symbol,t.side,t.quantity,t.price,t.total,t.round_id,t.created_at FROM trades t JOIN users u ON u.id=t.user_id JOIN stocks s ON s.id=t.stock_id ORDER BY t.id`).all()});const rows=db.prepare(`SELECT u.name,u.username,a.cash,COALESCE((SELECT SUM(h.quantity*s.price) FROM holdings h JOIN stocks s ON s.id=h.stock_id WHERE h.user_id=u.id),0) market_value,u.created_at FROM users u JOIN accounts a ON a.user_id=u.id WHERE u.role='player'`).all().map(x=>({...x,total:Number(x.cash)+Number(x.market_value),profit:Number(x.cash)+Number(x.market_value)-STARTING_CAPITAL})).sort((a,b)=>b.total-a.total).map((x,i)=>({...x,rank:i+1}));res.json({type:'leaderboard',rows});});
 app.get("/healthz", (req,res)=>res.status(200).json({ok:true,service:"stock-wars",time:new Date().toISOString()}));
@@ -1300,13 +1300,13 @@ app.get("/api/final-results", requireLogin, (req,res)=>{
 });
 app.get("/api/admin/player/:id/card", requireAdmin, (req,res)=>{
   const p=finalRankings().find(x=>x.id===Number(req.params.id));
-  if(!p)return res.status(404).json({error:"Player not found"});
+  if(!p)return res.status(404).json({error:"Team not found"});
   res.json({eventName:process.env.EVENT_NAME||"Stock Wars",player:p});
 });
 app.get("/api/admin/player/:id/qr", requireAdmin, async (req,res)=>{
   try{
     const p=db.prepare(`SELECT id,name,username FROM users WHERE id=? AND role='player'`).get(Number(req.params.id));
-    if(!p)return res.status(404).json({error:"Player not found"});
+    if(!p)return res.status(404).json({error:"Team not found"});
     const QRCode=require('qrcode'), target=`${req.protocol}://${req.get('host')}/?player=${encodeURIComponent(p.username)}`;
     res.json({playerId:`STW-${String(p.id).padStart(3,'0')}`,name:p.name,username:p.username,loginUrl:target,dataUrl:await QRCode.toDataURL(target,{margin:1,width:360,errorCorrectionLevel:'M'})});
   }catch(e){res.status(500).json({error:"QR generation unavailable. Run npm install first."});}
@@ -1337,4 +1337,5 @@ app.get("*",(req,res)=>{
 });
 
 app.listen(PORT,()=>console.log(`Stock Wars running at http://localhost:${PORT}`));
+
 
