@@ -4,6 +4,7 @@ const express = require("express");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const Database = require("better-sqlite3");
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 
@@ -35,6 +36,12 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL CHECK(role IN ('admin','player')),
   name TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS team_password_resets (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  code TEXT,
+  requested_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS stocks (
@@ -462,6 +469,16 @@ function touchPresence(req, hidden=null){
 function emitState(){ const st=publicState(); for(const res of sseClients){ try{res.write(`event: state\ndata: ${JSON.stringify(st)}\n\n`);}catch(e){} } }
 const sseClients=new Set();
 const tradeRate = new Map();
+const passwordResetRate = new Map();
+function allowPasswordResetRequest(req){
+  const ip=String(req.ip||req.socket?.remoteAddress||'unknown');
+  const now=Date.now(),windowMs=10*60*1000,maxRequests=5;
+  const attempts=(passwordResetRate.get(ip)||[]).filter(time=>now-time<windowMs);
+  if(attempts.length>=maxRequests){passwordResetRate.set(ip,attempts);return false;}
+  attempts.push(now);passwordResetRate.set(ip,attempts);
+  if(passwordResetRate.size>5000){for(const [key,times] of passwordResetRate){if(!times.some(time=>now-time<windowMs))passwordResetRate.delete(key);}}
+  return true;
+}
 function audit(req, action, meta={}) {
   const u=user(req);
   db.prepare(`INSERT INTO audit_logs(user_id,role,action,meta,ip,user_agent) VALUES(?,?,?,?,?,?)`)
@@ -847,6 +864,26 @@ app.post("/api/auth/register", (req,res) => {
   }
 });
 
+app.post('/api/auth/team-password-reset',(req,res)=>{
+  const username=String(req.body?.username||'').trim().toLowerCase();
+  const teamName=String(req.body?.name||'').trim().toLowerCase();
+  const genericMessage='If those details match a team account, a temporary password is available to the host. Please contact the host to retrieve it.';
+  if(!allowPasswordResetRequest(req))return res.status(429).json({error:'Too many reset requests. Please wait before trying again.'});
+  if(!username||!teamName||username.length>100||teamName.length>120)return res.json({ok:true,message:genericMessage});
+  const team=db.prepare(`SELECT id,name FROM users WHERE username=? AND role='player'`).get(username);
+  if(!team||String(team.name||'').trim().toLowerCase()!==teamName)return res.json({ok:true,message:genericMessage});
+  const now=Date.now(),previous=db.prepare(`SELECT requested_at FROM team_password_resets WHERE user_id=?`).get(team.id);
+  if(previous&&now-Number(previous.requested_at)<5*60*1000)return res.json({ok:true,message:genericMessage});
+  const code=String(crypto.randomInt(100000,1000000));
+  const hash=bcrypt.hashSync(code,10);
+  db.transaction(()=>{
+    db.prepare(`UPDATE users SET password_hash=? WHERE id=? AND role='player'`).run(hash,team.id);
+    db.prepare(`INSERT INTO team_password_resets(user_id,code,requested_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET code=excluded.code,requested_at=excluded.requested_at`).run(team.id,code,now);
+    audit(req,'TEAM_PASSWORD_RESET_REQUESTED',{userId:team.id});
+  })();
+  res.json({ok:true,message:genericMessage});
+});
+
 app.post("/api/auth/player-login", (req,res) => {
   const {username,password} = req.body;
   const normalized=(username||"").trim().toLowerCase();
@@ -859,6 +896,8 @@ app.post("/api/auth/player-login", (req,res) => {
   if ((u.status||'active') === 'suspended') return res.status(403).json({error:"This team account is suspended by the host."});
   req.session.user = {id:u.id,username:u.username,role:'player',name:u.name,status:u.status||'active'};
   touchPresence(req);
+  const reset=db.prepare(`SELECT code FROM team_password_resets WHERE user_id=? AND code IS NOT NULL`).get(u.id);
+  if(reset){db.prepare(`UPDATE team_password_resets SET code=NULL WHERE user_id=?`).run(u.id);audit(req,'TEAM_PASSWORD_RESET_USED',{userId:u.id});}
   audit(req,'PLAYER_LOGIN',{role:'player'});
   res.json({ok:true,user:req.session.user});
 });
@@ -1056,7 +1095,7 @@ app.get("/api/leaderboard", requireLogin, (req,res)=>{
 });
 
 app.get("/api/admin/players", requireAdmin, (req,res)=>{
-  const players=db.prepare(`SELECT id,name,username,created_at,status,last_seen_at,last_visibility,visibility_events FROM users WHERE role='player' ORDER BY id DESC`).all();
+  const players=db.prepare(`SELECT u.id,u.name,u.username,u.created_at,u.status,u.last_seen_at,u.last_visibility,u.visibility_events,r.code AS passwordResetCode,r.requested_at AS passwordResetRequestedAt FROM users u LEFT JOIN team_password_resets r ON r.user_id=u.id WHERE u.role='player' ORDER BY u.id DESC`).all();
   const now=nowMs();
   res.json(players.map(p=>({...p,...portfolio(p.id),playerId:`STW-${String(p.id).padStart(3,'0')}`,online:Boolean(p.last_seen_at&&now-p.last_seen_at<30000),status:p.status||'active',lastSeenAt:p.last_seen_at,lastVisibility:p.last_visibility,visibilityEvents:p.visibility_events||0})));
 });
