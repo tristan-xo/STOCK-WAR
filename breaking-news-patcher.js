@@ -42,7 +42,7 @@ function generateBreakingNews(roundId){
       'The update raises concerns around earnings visibility and sentiment across the '+targetStock.sector+' space.',
       'Analysts are reassessing expectations as the development could pressure growth, margins or future cash flows.',
       'The stock is expected to see an unusually strong market reaction as participants digest the announcement.'
-    ]).join('\\n');
+    ]).join('\n');
   }else{
     targetSector=sectors[Math.floor(Math.random()*sectors.length)];
     impact=Number((sign*(8+Math.random()*4)).toFixed(2));
@@ -57,10 +57,9 @@ function generateBreakingNews(roundId){
       'The news raises concerns around demand, earnings visibility and investor confidence across several companies in the space.',
       'Analysts are revising expectations as the development could pressure growth, margins or future cash flows across the sector.',
       'Stocks across the sector are expected to experience a significant market reaction as investors digest the announcement.'
-    ]).join('\\n');
+    ]).join('\n');
   }
   const tx=db.transaction(()=>{
-    db.prepare("DELETE FROM market_news_events WHERE round_id=?").run(roundId);
     const news=db.prepare("INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)")
       .run(roundId,'Breaking News',positive?'positive':'negative',mode.toUpperCase(),targetSector,headline,body,impact);
     const up=db.prepare("INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct");
@@ -76,8 +75,6 @@ function generateBreakingNews(roundId){
       }
       up.run(roundId,s.id,Number(Math.max(-18,Math.min(18,p)).toFixed(2)));
     }
-    db.prepare("UPDATE rounds SET news_title=?,news_body=?,news_impact_note=? WHERE id=?")
-      .run('BREAKING NEWS',headline+'\\n'+body,'High-impact '+mode+' event - all round impacts are applied at the end',roundId);
     db.prepare("UPDATE event_state SET breaking_active=1,breaking_news_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=1")
       .run(news.lastInsertRowid);
     return {newsId:Number(news.lastInsertRowid),headline,body,impactPct:impact,sentiment:positive?'positive':'negative',targetType:mode,target:mode==='stock'?targetStock.symbol:targetSector};
@@ -144,7 +141,7 @@ if (!appSource.includes('onclick="triggerBreakingNews()"')) {
   patch(APP,old,neu,'host button');
 }
 if (!fs.readFileSync(APP,'utf8').includes('async function triggerBreakingNews()')) {
-  const fn="async function triggerBreakingNews(){if(!confirm('Trigger BREAKING NEWS now? The current news will be replaced. Players get 1 minute to read and 2 minutes to trade. All accumulated round impacts are applied only at the end.'))return;try{await api('/api/admin/breaking-news',{method:'POST',body:JSON.stringify({})});toast('⚡ Breaking News published — 1 min read + 2 min trade');adminPage()}catch(e){toast(e.message)}}\n";
+  const fn="async function triggerBreakingNews(){if(!confirm('Trigger BREAKING NEWS now? It will be added to this round’s news log. Players get 1 minute to read and 2 minutes to trade. All accumulated round impacts are applied only at the end.'))return;try{await api('/api/admin/breaking-news',{method:'POST',body:JSON.stringify({})});toast('⚡ Breaking News published — 1 min read + 2 min trade');adminPage()}catch(e){toast(e.message)}}\n";
   patch(APP,'async function resetEvent(){',fn+'async function resetEvent(){','client action');
 }
 
@@ -163,3 +160,4 @@ patch(APP,
   'breaking button refresh');
 
 console.log('[breaking-news] complete');
+
