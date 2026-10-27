@@ -1636,3 +1636,13 @@ label{color:#514637!important}
 .projectionNewsroom{width:100%}
 @media(max-width:1000px){.projectionHeader.projectionTopLayout{grid-template-columns:minmax(0,1fr) auto;gap:8px}.projectionHeader.projectionTopLayout .projectionBrand{grid-column:1;grid-row:1;justify-self:start}.projectionHeader.projectionTopLayout .projectionHeaderStatus{grid-column:1/-1;grid-row:2}.projectionHeader.projectionTopLayout .projectionTopPodium{grid-column:2;grid-row:1;width:100%}}
 @media(max-width:650px){.projectionHeader.projectionTopLayout{grid-template-columns:minmax(0,1fr)}.projectionHeader.projectionTopLayout .projectionBrand,.projectionHeader.projectionTopLayout .projectionHeaderStatus,.projectionHeader.projectionTopLayout .projectionTopPodium{grid-column:1;grid-row:auto}.projectionHeader.projectionTopLayout .projectionTopPodium{justify-self:stretch;max-width:none}}
+
+/* Let a lone breaking-news story use the full projection page height. */
+.projectionPaperSingle .projectionCenterLead{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-rows:auto auto minmax(0,1fr) auto;column-gap:clamp(14px,2vw,28px);row-gap:clamp(8px,1vw,16px);align-items:stretch}
+.projectionPaperSingle .projectionCenterLead>.newsroomMeta{grid-column:2;grid-row:1;align-self:end;font-size:9px}
+.projectionPaperSingle .projectionCenterLead>h3{grid-column:2;grid-row:2;align-self:start;font-size:clamp(28px,3vw,48px);line-height:1}
+.projectionPaperSingle .projectionCenterLead>.newsroomDek{display:block;grid-column:2;grid-row:3;align-self:start;font-size:clamp(14px,1.2vw,18px);line-height:1.48;-webkit-line-clamp:unset;overflow:hidden}
+.projectionPaperSingle .projectionCenterLead>.projectionStoryArt{grid-column:1;grid-row:1/5;width:100%;height:100%;min-height:0!important;margin:0;border-radius:8px}
+.projectionPaperSingle .projectionCenterLead>.projectionStoryArt .newsroomPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.projectionPaperSingle .projectionCenterLead>.newsroomByline{grid-column:2;grid-row:4;align-self:end;padding-top:10px;font-size:8px}
+@media(max-width:650px){.projectionPaperSingle .projectionCenterLead{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(210px,38vh) auto auto minmax(80px,1fr) auto}.projectionPaperSingle .projectionCenterLead>.projectionStoryArt{grid-column:1;grid-row:1}.projectionPaperSingle .projectionCenterLead>.newsroomMeta{grid-column:1;grid-row:2}.projectionPaperSingle .projectionCenterLead>h3{grid-column:1;grid-row:3;font-size:clamp(25px,7vw,38px)}.projectionPaperSingle .projectionCenterLead>.newsroomDek{grid-column:1;grid-row:4;font-size:14px}.projectionPaperSingle .projectionCenterLead>.newsroomByline{grid-column:1;grid-row:5}}
