@@ -942,7 +942,7 @@ app.get("/api/player/dashboard", requireLogin, (req,res)=>{
   `).all(user(req).id);
   const r=currentRound();
   const news=r ? db.prepare(`SELECT id,status,news_title,news_body,news_impact_note FROM rounds WHERE id=?`).get(r) : null;
-  const newsEventsRaw=r ? db.prepare(`SELECT id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events WHERE round_id=? AND category<>'Breaking News' ORDER BY id`).all(r) : [];
+  const newsEventsRaw=r ? db.prepare(`SELECT id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events WHERE round_id=? AND (CASE WHEN EXISTS(SELECT 1 FROM market_news_events WHERE round_id=? AND category='Breaking News') THEN category='Breaking News' ELSE category<>'Breaking News' END) ORDER BY id`).all(r,r) : [];
   // Normalize older rounds created before the newline fix. Some stored bodies
   // contain the two literal characters \\n instead of a real line break.
   // Keeping this normalization server-side guarantees every player receives
@@ -1254,7 +1254,7 @@ app.get("/api/admin/overview", requireAdmin, (req,res)=>{
   const tradeCount=db.prepare(`SELECT COUNT(*) c FROM trades`).get().c;
   const r=st.current_round?db.prepare(`SELECT * FROM rounds WHERE id=?`).get(st.current_round):null;
   const newsEvents=st.current_round
-    ? db.prepare(`SELECT id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events WHERE round_id=? AND category<>'Breaking News' ORDER BY id`).all(st.current_round)
+    ? db.prepare(`SELECT id,category,sentiment,scope,target_sector,headline,body,impact_pct,generated_at FROM market_news_events WHERE round_id=? AND (CASE WHEN EXISTS(SELECT 1 FROM market_news_events WHERE round_id=? AND category='Breaking News') THEN category='Breaking News' ELSE category<>'Breaking News' END) ORDER BY id`).all(st.current_round,st.current_round)
     : [];
   res.json({state:st,playerCount,tradeCount,round:r,newsEvents,timing:{newsSeconds:NEWS_SECONDS,tradeSeconds:TRADE_SECONDS}});
 });
@@ -1262,7 +1262,7 @@ app.get("/api/admin/overview", requireAdmin, (req,res)=>{
 app.get("/api/admin/projection", requireAdmin, (req,res)=>{
   const st=state();
   const newsEvents=st.current_round
-    ? db.prepare(`SELECT id,target_sector,headline,body FROM market_news_events WHERE round_id=? ORDER BY id`).all(st.current_round)
+    ? db.prepare(`SELECT id,target_sector,headline,body FROM market_news_events WHERE round_id=? AND (CASE WHEN EXISTS(SELECT 1 FROM market_news_events WHERE round_id=? AND category='Breaking News') THEN category='Breaking News' ELSE category<>'Breaking News' END) ORDER BY id`).all(st.current_round,st.current_round)
     : [];
   const rankings=finalRankings().slice(0,2).map(p=>({name:p.name,rank:p.rank}));
   res.json({state:st,newsEvents,rankings});
@@ -1337,3 +1337,4 @@ app.get("*",(req,res)=>{
 });
 
 app.listen(PORT,()=>console.log(`Stock Wars running at http://localhost:${PORT}`));
+
