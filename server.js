@@ -523,7 +523,7 @@ function refreshEtfWeights(){
       const hasFullShareData=rows.length>0&&rows.every(x=>Number(x.shares_outstanding)>0);
       const caps=rows.map(x=>Math.max(0,Number(x.price)||0)*Math.max(0,Number(x.shares_outstanding)||0));
       const total=caps.reduce((sum,x)=>sum+x,0);
-      rows.forEach((row,i)=>update(hasFullShareData&&total>0?caps[i]/total:(rows.length?1/rows.length:0),etf.id,row.stock_id));
+      rows.forEach((row,i)=>update.run(hasFullShareData&&total>0?caps[i]/total:(rows.length?1/rows.length:0),etf.id,row.stock_id));
     }
   });
   tx();
