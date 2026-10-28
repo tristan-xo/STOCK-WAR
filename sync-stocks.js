@@ -8,10 +8,6 @@ const CSV_PATH = path.join(__dirname, "STOCK_LIST.csv");
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 
-// Rename the live NSE listing symbol before inserting the updated catalog, so
-// the previous ZOMATO key is retained without creating a duplicate position.
-db.prepare(`UPDATE stocks SET symbol='ETERNAL',name='Eternal Limited' WHERE symbol='ZOMATO' AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol='ETERNAL')`).run();
-
 db.exec(`
   CREATE TABLE IF NOT EXISTS stocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +18,11 @@ db.exec(`
     base_price REAL NOT NULL
   );
 `);
+
+// Rename the live NSE listing symbol before inserting the updated catalog, so
+// the previous ZOMATO key is retained without creating a duplicate position.
+// Create the table first because Render may start with a fresh SQLite database.
+db.prepare(`UPDATE stocks SET symbol='ETERNAL',name='Eternal Limited' WHERE symbol='ZOMATO' AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol='ETERNAL')`).run();
 
 const csv = fs.readFileSync(CSV_PATH, "utf8").replace(/^\uFEFF/, "").trim();
 const lines = csv.split(/\r?\n/).filter(Boolean);
