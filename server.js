@@ -222,6 +222,41 @@ CREATE TABLE IF NOT EXISTS round_snapshots (
 );
 `);
 
+db.exec(`
+CREATE TABLE IF NOT EXISTS round_holding_snapshots (
+  user_id INTEGER NOT NULL,
+  round_id INTEGER NOT NULL,
+  stock_id INTEGER NOT NULL,
+  quantity INTEGER NOT NULL,
+  PRIMARY KEY(user_id,round_id,stock_id),
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY(round_id) REFERENCES rounds(id) ON DELETE CASCADE,
+  FOREIGN KEY(stock_id) REFERENCES stocks(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS dividend_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  announcement_round INTEGER NOT NULL,
+  payout_round INTEGER NOT NULL,
+  eligible_round INTEGER NOT NULL,
+  stock_id INTEGER NOT NULL,
+  amount_per_share REAL NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(announcement_round,payout_round,eligible_round,stock_id),
+  FOREIGN KEY(stock_id) REFERENCES stocks(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS dividend_payouts (
+  event_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  eligible_quantity INTEGER NOT NULL DEFAULT 0,
+  paid_quantity INTEGER NOT NULL DEFAULT 0,
+  amount REAL NOT NULL DEFAULT 0,
+  paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(event_id,user_id),
+  FOREIGN KEY(event_id) REFERENCES dividend_events(id) ON DELETE CASCADE,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`);
+
 // Migration: early autonomous-news builds accidentally made round_id UNIQUE in
 // market_news_events. That allowed only one story per round, so story #2 caused
 // the Start Round request to fail. Rebuild the table once on existing databases.
@@ -634,6 +669,62 @@ function snapshotRound(roundId){
     const pf=portfolio(p.id);
     ins.run(p.id,roundId,pf.total,pf.cash,pf.marketValue,pf.profit);
   }
+  db.prepare(`DELETE FROM round_holding_snapshots WHERE round_id=?`).run(roundId);
+  db.prepare(`INSERT INTO round_holding_snapshots(user_id,round_id,stock_id,quantity)
+    SELECT user_id,?,stock_id,quantity FROM holdings WHERE quantity>0`).run(roundId);
+}
+const FIXED_DIVIDEND_SCHEDULES=[
+  {announcementRound:2,payoutRound:3,eligibleRound:1},
+  {announcementRound:2,payoutRound:5,eligibleRound:1},
+  {announcementRound:3,payoutRound:4,eligibleRound:1},
+  {announcementRound:5,payoutRound:6,eligibleRound:2},
+  {announcementRound:5,payoutRound:6,eligibleRound:3},
+  {announcementRound:5,payoutRound:6,eligibleRound:1},
+  {announcementRound:5,payoutRound:6,eligibleRound:4}
+];
+function dividendSchedulesForRound(announcementRound){
+  const plans=FIXED_DIVIDEND_SCHEDULES.filter(x=>x.announcementRound===announcementRound);
+  // Add a fresh, valid combination in Rounds 2–4 so each game can vary its dividend calendar.
+  if(announcementRound>=2&&announcementRound<=4){
+    const existing=new Set(plans.map(x=>`${x.eligibleRound}|${x.payoutRound}`));
+    const options=[];
+    for(let eligibleRound=1;eligibleRound<announcementRound;eligibleRound++){
+      for(let payoutRound=announcementRound+1;payoutRound<=6;payoutRound++){
+        if(!existing.has(`${eligibleRound}|${payoutRound}`)) options.push({announcementRound,payoutRound,eligibleRound});
+      }
+    }
+    if(options.length) plans.push(options[Math.floor(Math.random()*options.length)]);
+  }
+  return plans;
+}
+function payScheduledDividends(payoutRound){
+  const events=db.prepare(`SELECT id,eligible_round,stock_id,amount_per_share FROM dividend_events WHERE payout_round=? ORDER BY id`).all(payoutRound);
+  const teams=db.prepare(`SELECT id FROM users WHERE role='player'`).all();
+  const eligible=db.prepare(`SELECT quantity FROM round_holding_snapshots WHERE user_id=? AND round_id=? AND stock_id=?`);
+  const current=db.prepare(`SELECT quantity FROM holdings WHERE user_id=? AND stock_id=?`);
+  const soldSinceRecord=db.prepare(`SELECT COALESCE(SUM(quantity),0) quantity FROM trades WHERE user_id=? AND stock_id=? AND side='SELL' AND round_id>? AND round_id<?`);
+  const record=db.prepare(`INSERT OR IGNORE INTO dividend_payouts(event_id,user_id,eligible_quantity,paid_quantity,amount) VALUES(?,?,?,?,?)`);
+  let creditedTeams=0,creditedEvents=0;
+  for(const event of events){
+    let eventCredited=false;
+    for(const team of teams){
+      const recordQty=Math.max(0,Number(eligible.get(team.id,event.eligible_round,event.stock_id)?.quantity||0));
+      const soldQty=Math.max(0,Number(soldSinceRecord.get(team.id,event.stock_id,event.eligible_round,payoutRound)?.quantity||0));
+      const eligibleQty=Math.max(0,recordQty-soldQty);
+      const currentQty=Math.max(0,Number(current.get(team.id,event.stock_id)?.quantity||0));
+      const paidQty=Math.min(eligibleQty,currentQty);
+      const amount=money(paidQty*Math.max(0,Number(event.amount_per_share)||0));
+      const inserted=record.run(event.id,team.id,eligibleQty,paidQty,amount);
+      if(!inserted.changes) continue;
+      if(amount>0){
+        db.prepare(`UPDATE accounts SET cash=cash+? WHERE user_id=?`).run(amount,team.id);
+        creditedTeams++;
+        eventCredited=true;
+      }
+    }
+    if(eventCredited) creditedEvents++;
+  }
+  return {eventCount:events.length,creditedEvents,creditedTeams};
 }
 const NEWS_LIBRARY = [
   {category:'Earnings Surprise', sentiment:'positive', weight:18, templates:[
@@ -782,12 +873,34 @@ function generateRoundNews(roundId){
   const recentCategorySectors=new Set(recentRows.map(x=>`${String(x.category||'').toLowerCase()}|${String(x.target_sector||'').toLowerCase()}`));
   const recentHeadlines=recentRows.map(x=>String(x.headline||'').toLowerCase());
   const tx=db.transaction(()=>{
+    db.prepare(`DELETE FROM dividend_events WHERE announcement_round=?`).run(roundId);
     db.prepare(`DELETE FROM market_news_events WHERE round_id=?`).run(roundId);
     db.prepare(`DELETE FROM round_impacts WHERE round_id=?`).run(roundId);
     const all=db.prepare(`SELECT id,name,symbol,sector,price,eps,book_value,dividend_per_share,roe,debt_equity FROM stocks WHERE asset_type='STOCK'`).all();
     const upsert=db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct`);
     const insertNews=db.prepare(`INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)`);
+    const insertDividend=db.prepare(`INSERT INTO dividend_events(announcement_round,payout_round,eligible_round,stock_id,amount_per_share) VALUES(?,?,?,?,?)`);
     const stories=[]; const usedCategories=new Set(); const usedSectors=new Set(); const usedCompanies=new Set();
+    const dividendStockIds=new Set(db.prepare(`SELECT stock_id FROM dividend_events`).all().map(x=>Number(x.stock_id)));
+    for(const plan of dividendSchedulesForRound(roundId)){
+      const choices=all.filter(st=>Number(st.dividend_per_share)>0&&!dividendStockIds.has(Number(st.id)));
+      if(!choices.length) break;
+      const stock=choices[Math.floor(Math.random()*choices.length)];
+      dividendStockIds.add(Number(stock.id)); usedCompanies.add(Number(stock.id));
+      const impact=money(randomBetween(AUTO_NEWS_MIN_PCT/2.2,AUTO_NEWS_MAX_PCT/2.2));
+      const headline=`${stock.name} declares a cash dividend`;
+      const body=`The company has declared a cash dividend for qualifying holders. Teams must hold shares at the close of Round ${plan.eligibleRound} and retain them until Round ${plan.payoutRound} begins. Shares sold before then will not qualify. Eligible cash will be credited automatically at the start of the payout round.`;
+      const news=insertNews.run(roundId,'Dividend Declaration','positive','STOCK',null,headline,body,impact);
+      insertDividend.run(roundId,plan.payoutRound,plan.eligibleRound,stock.id,Number(stock.dividend_per_share));
+      stories.push({id:Number(news.lastInsertRowid),category:'Dividend Declaration',sentiment:'positive',scope:'STOCK',targetSector:null,headline,body,impactPct:impact,stock:stock.name,symbol:stock.symbol});
+      for(const related of all){
+        let pct;
+        if(Number(related.id)===Number(stock.id)) pct=impact;
+        else if(related.sector===stock.sector) pct=impact*randomBetween(0.35,0.75);
+        else {pct=impact*randomBetween(0.005,0.035);if(Math.random()<0.4)pct=-pct;}
+        upsert.run(roundId,related.id,money(Math.max(-4,Math.min(4,pct))));
+      }
+    }
     const sectorPool=NEWS_SECTOR_WEIGHTS.map(([sector])=>sector).sort(()=>Math.random()-0.5);
     const pickFreshSector=(category)=>{
       const available=sectorPool.filter(x=>!usedSectors.has(x));
@@ -795,12 +908,13 @@ function generateRoundNews(roundId){
       const sector=(fresh.length?fresh:available)[0] || weightedSector();
       usedSectors.add(sector); return sector;
     };
-    for(let i=0;i<storyCount;i++){
+    const normalStoryCount=Math.max(0,storyCount-stories.length);
+    for(let i=0;i<normalStoryCount;i++){
       const candidates=NEWS_LIBRARY.filter(x=>!usedCategories.has(x.category));
       const weightedCandidates=candidates.map(x=>({...x,weight:x.weight*(recentCategories.has(x.category)?0.35:1)}));
       const entry=weightedPick(weightedCandidates.length?weightedCandidates:NEWS_LIBRARY);
       usedCategories.add(entry.category);
-      const marketWide=(entry.category==='Market Risk'||entry.category==='Market Rally') && i>=6;
+      const marketWide=(entry.category==='Market Risk'||entry.category==='Market Rally') && stories.length>=6;
       const targetSector=marketWide?null:pickFreshSector(entry.category);
       const sectorStocks=targetSector?all.filter(st=>st.sector===targetSector):[];
       const freshCompanies=sectorStocks.filter(st=>!usedCompanies.has(st.id)&&!recentHeadlines.some(h=>h.includes(String(st.name).toLowerCase())));
@@ -1320,12 +1434,13 @@ app.post("/api/admin/start-round", requireAdmin, (req,res)=>{
   if(st.current_round>0){ const previous=db.prepare(`SELECT status FROM rounds WHERE id=?`).get(st.current_round); if(!previous || previous.status!=="applied") return res.status(400).json({error:"Previous round is not finished yet."}); }
   const start=nowMs(), end=start+NEWS_SECONDS*1000;
   // Generate the scenario before opening the round so players can never observe a live round without its news/impact map.
-  let generated;
+  let generated,dividendPayments={eventCount:0,creditedEvents:0,creditedTeams:0};
   try {
     generated=generateRoundNews(roundId);
     db.transaction(()=>{
       const latest=state();
       if(latest.current_round!==st.current_round || latest.event_status==='live' || latest.event_status==='paused') throw new Error('Event state changed. Please retry.');
+      dividendPayments=payScheduledDividends(roundId);
       db.prepare(`UPDATE rounds SET status='news',released_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'`).run(roundId);
       db.prepare(`UPDATE event_state SET current_round=?,event_status='live',phase='news',phase_started_at=?,phase_ends_at=?,paused_remaining=NULL,registration_open=0,updated_at=CURRENT_TIMESTAMP WHERE id=1`).run(roundId,start,end);
     })();
@@ -1334,6 +1449,7 @@ app.post("/api/admin/start-round", requireAdmin, (req,res)=>{
     return res.status(500).json({error:`Unable to start Round ${roundId}: ${err.message}`});
   }
   if(generated?.length) audit(req,'AUTO_NEWS_GENERATED',{roundId,storyCount:generated.length,categories:generated.map(x=>x.category),sentiments:generated.map(x=>x.sentiment)});
+  if(dividendPayments.eventCount) audit(req,'DIVIDENDS_PAID',{roundId,...dividendPayments});
   audit(req,'START_ROUND',{roundId});
   emitState(); res.json({ok:true,state:state()});
 });
@@ -1379,6 +1495,9 @@ app.post("/api/admin/reset", requireAdmin, (req,res)=>{
     db.prepare(`DELETE FROM accounts`).run();
     db.prepare(`DELETE FROM trade_nonces`).run();
     db.prepare(`DELETE FROM round_snapshots`).run();
+    db.prepare(`DELETE FROM round_holding_snapshots`).run();
+    db.prepare(`DELETE FROM dividend_payouts`).run();
+    db.prepare(`DELETE FROM dividend_events`).run();
     db.prepare(`DELETE FROM round_price_events`).run();
     db.prepare(`DELETE FROM market_news_events`).run();
     db.prepare(`DELETE FROM audit_logs`).run();
