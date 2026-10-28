@@ -50,7 +50,27 @@ CREATE TABLE IF NOT EXISTS stocks (
   name TEXT NOT NULL,
   sector TEXT NOT NULL,
   price REAL NOT NULL,
-  base_price REAL NOT NULL
+  base_price REAL NOT NULL,
+  asset_type TEXT NOT NULL DEFAULT 'STOCK',
+  shares_outstanding INTEGER,
+  eps REAL,
+  face_value REAL,
+  book_value REAL,
+  dividend_per_share REAL,
+  dividend_yield REAL,
+  roe REAL,
+  debt_equity REAL,
+  fundamentals_period TEXT,
+  fundamentals_source TEXT
+);
+
+CREATE TABLE IF NOT EXISTS etf_constituents (
+  etf_stock_id INTEGER NOT NULL,
+  stock_id INTEGER NOT NULL,
+  weight REAL NOT NULL DEFAULT 0,
+  PRIMARY KEY(etf_stock_id,stock_id),
+  FOREIGN KEY(etf_stock_id) REFERENCES stocks(id) ON DELETE CASCADE,
+  FOREIGN KEY(stock_id) REFERENCES stocks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS rounds (
@@ -259,7 +279,19 @@ if (!stateColumns2.includes('cost_basis_method')) db.exec(`ALTER TABLE event_sta
 if (!stateColumns2.includes('registration_open')) db.exec(`ALTER TABLE event_state ADD COLUMN registration_open INTEGER NOT NULL DEFAULT 1`);
 if (!stateColumns2.includes('presentation_mode')) db.exec(`ALTER TABLE event_state ADD COLUMN presentation_mode INTEGER NOT NULL DEFAULT 0`);
 const stockColumns = db.prepare(`PRAGMA table_info(stocks)`).all().map(x=>x.name);
-if (!stockColumns.includes('shares_outstanding')) db.exec(`ALTER TABLE stocks ADD COLUMN shares_outstanding INTEGER NOT NULL DEFAULT 1000000`);
+for (const [name,type] of [
+  ['asset_type',"TEXT NOT NULL DEFAULT 'STOCK'"],
+  ['shares_outstanding','INTEGER'],
+  ['eps','REAL'],
+  ['face_value','REAL'],
+  ['book_value','REAL'],
+  ['dividend_per_share','REAL'],
+  ['dividend_yield','REAL'],
+  ['roe','REAL'],
+  ['debt_equity','REAL'],
+  ['fundamentals_period','TEXT'],
+  ['fundamentals_source','TEXT']
+]) if (!stockColumns.includes(name)) db.exec(`ALTER TABLE stocks ADD COLUMN ${name} ${type}`);
 if (!stockColumns.includes('volume')) db.exec(`ALTER TABLE stocks ADD COLUMN volume INTEGER NOT NULL DEFAULT 100000`);
 
 
@@ -354,8 +386,11 @@ const stocks = [
   ["APOLLOHOSP","Apollo Hospitals","Healthcare",7600],
   ["MAXHEALTH","Max Healthcare","Healthcare",1050],
   ["INDIGO","InterGlobe Aviation","Aviation",5700],
-  ["ZOMATO","Eternal (formerly Zomato)","Consumer Tech",300]
+  ["ETERNAL","Eternal Limited","Consumer Tech",300]
 ];
+
+// Preserve existing positions/trades while aligning the symbol with its current NSE listing.
+db.prepare(`UPDATE stocks SET symbol='ETERNAL',name='Eternal Limited' WHERE symbol='ZOMATO' AND NOT EXISTS (SELECT 1 FROM stocks WHERE symbol='ETERNAL')`).run();
 
 const seedImpacts = [
   [1, {IT:6, Banking:4, "Energy & Conglomerates":2, Pharma:-2, Telecom:3}],
@@ -370,6 +405,20 @@ function seed() {
   const insertStock = db.prepare(`INSERT OR IGNORE INTO stocks(symbol,name,sector,price,base_price) VALUES(?,?,?,?,?)`);
   const tx = db.transaction(() => {
     for (const s of stocks) insertStock.run(...s, s[3]);
+    // These are simulated sector baskets, not exchange-listed products. They use
+    // the same trading/holding ledger as equities and follow their constituents.
+    const sectorRows=db.prepare(`SELECT sector FROM stocks WHERE asset_type='STOCK' GROUP BY sector ORDER BY sector`).all();
+    const insertEtf=db.prepare(`INSERT OR IGNORE INTO stocks(symbol,name,sector,price,base_price,asset_type) VALUES(?,?,?,?,?,'ETF')`);
+    const insertConstituent=db.prepare(`INSERT OR IGNORE INTO etf_constituents(etf_stock_id,stock_id,weight) VALUES(?,?,?)`);
+    for(const {sector} of sectorRows){
+      const slug=String(sector).normalize('NFKD').replace(/[^a-zA-Z0-9]+/g,'').toUpperCase();
+      const symbol=`ETF-${slug}`;
+      insertEtf.run(symbol,`${sector} Sector ETF`,sector,1000,1000);
+      const etf=db.prepare(`SELECT id FROM stocks WHERE symbol=?`).get(symbol);
+      const members=db.prepare(`SELECT id FROM stocks WHERE sector=? AND asset_type='STOCK' ORDER BY symbol`).all(sector);
+      const equalWeight=members.length?1/members.length:0;
+      for(const member of members)insertConstituent.run(etf.id,member.id,equalWeight);
+    }
     for (let i=1;i<=6;i++) db.prepare(`INSERT OR IGNORE INTO rounds(id,status) VALUES(?, 'pending')`).run(i);
     db.prepare(`INSERT OR IGNORE INTO event_state(id,current_round,event_status) VALUES(1,0,'registration')`).run();
     const adminUsername = process.env.ADMIN_USERNAME || "admin";
@@ -391,7 +440,7 @@ if (adminPassword) {
     "Administrator"
   );
 }
-    const all = db.prepare(`SELECT id,sector,base_price FROM stocks`).all();
+    const all = db.prepare(`SELECT id,sector,base_price FROM stocks WHERE asset_type='STOCK'`).all();
     const hist = db.prepare(`INSERT INTO price_history(stock_id,round_id,price,reason) SELECT ?,NULL,?,'BASE' WHERE NOT EXISTS (SELECT 1 FROM price_history WHERE stock_id=? AND round_id IS NULL AND reason='BASE')`);
     for (const st of all) hist.run(st.id, st.base_price, st.id);
     const impactStmt = db.prepare(`INSERT OR IGNORE INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?)`);
@@ -405,12 +454,43 @@ if (adminPassword) {
         impactStmt.run(roundId, s.id, impact);
       }
     }
+    const etfImpacts=db.prepare(`INSERT OR IGNORE INTO round_impacts(round_id,stock_id,impact_pct)
+      SELECT ri.round_id,ec.etf_stock_id,SUM(ri.impact_pct*ec.weight)
+      FROM round_impacts ri JOIN etf_constituents ec ON ec.stock_id=ri.stock_id
+      WHERE ri.round_id BETWEEN 1 AND 6 GROUP BY ri.round_id,ec.etf_stock_id`);
+    etfImpacts.run();
   });
   tx();
 }
 seed();
-db.prepare(`UPDATE stocks SET shares_outstanding=CASE WHEN shares_outstanding IS NULL OR shares_outstanding<=0 THEN 1000000+id*125000 ELSE shares_outstanding END,
-  volume=CASE WHEN volume IS NULL OR volume<=0 THEN 50000+id*7500 ELSE volume END`).run();
+// Clear the old synthetic share-count placeholders. Market cap now derives from
+// shares reported in the imported annual filings and the simulated game price.
+db.prepare(`UPDATE stocks SET shares_outstanding=0 WHERE asset_type='ETF' OR fundamentals_source IS NULL`).run();
+db.prepare(`UPDATE stocks SET volume=CASE WHEN volume IS NULL OR volume<=0 THEN 50000+id*7500 ELSE volume END WHERE asset_type='STOCK'`).run();
+function refreshEtfWeights(){
+  const etfs=db.prepare(`SELECT id FROM stocks WHERE asset_type='ETF'`).all();
+  const members=db.prepare(`SELECT ec.stock_id,s.price,s.shares_outstanding FROM etf_constituents ec JOIN stocks s ON s.id=ec.stock_id WHERE ec.etf_stock_id=?`);
+  const update=db.prepare(`UPDATE etf_constituents SET weight=? WHERE etf_stock_id=? AND stock_id=?`);
+  const tx=db.transaction(()=>{
+    for(const etf of etfs){
+      const rows=members.all(etf.id);
+      const hasFullShareData=rows.length>0&&rows.every(x=>Number(x.shares_outstanding)>0);
+      const caps=rows.map(x=>Math.max(0,Number(x.price)||0)*Math.max(0,Number(x.shares_outstanding)||0));
+      const total=caps.reduce((sum,x)=>sum+x,0);
+      rows.forEach((row,i)=>update(hasFullShareData&&total>0?caps[i]/total:(rows.length?1/rows.length:0),etf.id,row.stock_id));
+    }
+  });
+  tx();
+}
+function refreshEtfRoundImpacts(roundId){
+  db.prepare(`DELETE FROM round_impacts WHERE round_id=? AND stock_id IN (SELECT id FROM stocks WHERE asset_type='ETF')`).run(roundId);
+  db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct)
+    SELECT ?,ec.etf_stock_id,COALESCE(SUM(ri.impact_pct*ec.weight),0)
+    FROM etf_constituents ec JOIN round_impacts ri ON ri.stock_id=ec.stock_id AND ri.round_id=?
+    GROUP BY ec.etf_stock_id`).run(roundId,roundId);
+}
+refreshEtfWeights();
+for(let roundId=1;roundId<=6;roundId++)refreshEtfRoundImpacts(roundId);
 
 
 app.use(express.json());
@@ -632,6 +712,20 @@ function buildNewsBody(entry, company, sector, sentiment, impact, marketWide){
   ];
   return chosen.join('\n');
 }
+function stockFundamentalTilt(stock){
+  const price=Number(stock.price)||0;
+  if(!price)return 0;
+  const clamp=(value,min=-1,max=1)=>Math.max(min,Math.min(max,value));
+  const roe=Number(stock.roe),de=Number(stock.debt_equity),eps=Number(stock.eps),book=Number(stock.book_value),dps=Number(stock.dividend_per_share);
+  let score=0,weight=0;
+  const has=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value));
+  if(has(stock.roe)){score+=0.25*clamp(roe/20);weight+=0.25}
+  if(has(stock.eps)){score+=0.20*clamp((eps/price*100)/6);weight+=0.20}
+  if(has(stock.book_value)&&book>0){score+=0.20*clamp((book/price-0.7)/1.3);weight+=0.20}
+  if(has(stock.dividend_per_share)&&dps>=0){score+=0.15*clamp((dps/price*100)/5,0,1);weight+=0.15}
+  if(has(stock.debt_equity)&&de>=0){score-=0.20*clamp(de/3,0,1);weight+=0.20}
+  return weight?money(clamp(score/weight)*0.25):0;
+}
 function generateRoundNews(roundId){
   if(!AUTO_NEWS) return null;
   // Use recent history to avoid repeating the same category/sector/company combination.
@@ -644,7 +738,7 @@ function generateRoundNews(roundId){
   const tx=db.transaction(()=>{
     db.prepare(`DELETE FROM market_news_events WHERE round_id=?`).run(roundId);
     db.prepare(`DELETE FROM round_impacts WHERE round_id=?`).run(roundId);
-    const all=db.prepare(`SELECT id,name,symbol,sector FROM stocks`).all();
+    const all=db.prepare(`SELECT id,name,symbol,sector,price,eps,book_value,dividend_per_share,roe,debt_equity FROM stocks WHERE asset_type='STOCK'`).all();
     const upsert=db.prepare(`INSERT INTO round_impacts(round_id,stock_id,impact_pct) VALUES(?,?,?) ON CONFLICT(round_id,stock_id) DO UPDATE SET impact_pct=impact_pct+excluded.impact_pct`);
     const insertNews=db.prepare(`INSERT INTO market_news_events(round_id,category,sentiment,scope,target_sector,headline,body,impact_pct) VALUES(?,?,?,?,?,?,?,?)`);
     const stories=[]; const usedCategories=new Set(); const usedSectors=new Set(); const usedCompanies=new Set();
@@ -691,7 +785,13 @@ function generateRoundNews(roundId){
     const cap=Math.max(AUTO_NEWS_MAX_PCT*1.35,8);
     const impacts=db.prepare(`SELECT stock_id,impact_pct FROM round_impacts WHERE round_id=?`).all(roundId);
     const normalize=db.prepare(`UPDATE round_impacts SET impact_pct=? WHERE round_id=? AND stock_id=?`);
-    for(const x of impacts) normalize.run(money(Math.max(-cap,Math.min(cap,Number(x.impact_pct)))),roundId,x.stock_id);
+    const stockById=new Map(all.map(stock=>[stock.id,stock]));
+    for(const x of impacts){
+      const stock=stockById.get(x.stock_id);
+      const fundamentalTilt=stock?stockFundamentalTilt(stock):0;
+      normalize.run(money(Math.max(-cap,Math.min(cap,Number(x.impact_pct)+fundamentalTilt))),roundId,x.stock_id);
+    }
+    refreshEtfRoundImpacts(roundId);
     const lead=stories[0];
     const roundTitle=`Round ${roundId} · ${stories.length} market stories`;
     const roundSummary=stories.slice(0,3).map((x,i)=>`${i+1}. ${x.title}`).join('\n');
@@ -934,27 +1034,36 @@ app.post('/api/player/visibility', requireLogin, (req,res)=>{
 app.post('/api/player/heartbeat', requireLogin, (req,res)=>{touchPresence(req);res.json({ok:true,serverNow:nowMs()});});
 
 app.get("/api/stocks", requireLogin, (req,res)=>{
-  const stocks = db.prepare(`SELECT id,symbol,name,sector,price,base_price,shares_outstanding,volume FROM stocks ORDER BY sector,symbol`).all();
+  const stocks = db.prepare(`SELECT id,symbol,name,sector,price,base_price,asset_type,shares_outstanding,volume,eps,face_value,book_value,dividend_per_share,roe,debt_equity,fundamentals_period,fundamentals_source FROM stocks ORDER BY asset_type,sector,symbol`).all();
   res.json(stocks.map(s=>({...s,
-    market_cap:Math.round(Number(s.price)*Number(s.shares_outstanding)),
+    market_cap:s.asset_type==='STOCK'&&Number(s.shares_outstanding)>0?Math.round(Number(s.price)*Number(s.shares_outstanding)):null,
+    market_cap_cr:s.asset_type==='STOCK'&&Number(s.shares_outstanding)>0?money(Number(s.price)*Number(s.shares_outstanding)/10000000):null,
+    pe_ratio:s.asset_type==='STOCK'&&Number(s.eps)>0?money(Number(s.price)/Number(s.eps)):null,
+    pb_ratio:s.asset_type==='STOCK'&&Number(s.book_value)>0?money(Number(s.price)/Number(s.book_value)):null,
+    dividend_yield:s.asset_type==='STOCK'&&Number(s.price)>0&&s.dividend_per_share!==null&&Number(s.dividend_per_share)>=0?money(Number(s.dividend_per_share)/Number(s.price)*100):null,
     change_pct:money(((Number(s.price)-Number(s.base_price))/(Number(s.base_price)||1))*100),
     trading_volume:Number(s.volume)||0
   })));
 });
 app.get("/api/sectors", requireLogin, (req,res)=>{
-  const rows=db.prepare(`SELECT sector,COUNT(*) AS stock_count FROM stocks GROUP BY sector ORDER BY sector COLLATE NOCASE`).all();
+  const rows=db.prepare(`SELECT sector,COUNT(*) AS stock_count FROM stocks WHERE asset_type='STOCK' GROUP BY sector ORDER BY sector COLLATE NOCASE`).all();
   const sectors=rows.map(x=>({...x,slug:String(x.sector).toLowerCase().replace(/[^a-z0-9]+/g,'-')}));
   res.json({sectors});
 });
 app.get("/api/sectors/:sector", requireLogin, (req,res)=>{
   const sector=String(req.params.sector||'');
-  const rows=db.prepare(`SELECT id,symbol,name,sector,price,base_price,shares_outstanding,volume FROM stocks WHERE sector=? ORDER BY symbol`).all(sector);
+  const rows=db.prepare(`SELECT id,symbol,name,sector,price,base_price,asset_type,shares_outstanding,volume FROM stocks WHERE sector=? AND asset_type='STOCK' ORDER BY symbol`).all(sector);
   if(!rows.length) return res.status(404).json({error:'Sector not found.'});
   res.json({sector,stocks:rows.map(s=>({...s,
-    market_cap:Math.round(Number(s.price)*Number(s.shares_outstanding)),
+    market_cap:Number(s.shares_outstanding)>0?Math.round(Number(s.price)*Number(s.shares_outstanding)):null,
     change_pct:money(((Number(s.price)-Number(s.base_price))/(Number(s.base_price)||1))*100),
     trading_volume:Number(s.volume)||0
   }))});
+});
+
+app.get('/api/etfs',requireLogin,(req,res)=>{
+  const rows=db.prepare(`SELECT id,symbol,name,sector,price,base_price FROM stocks WHERE asset_type='ETF' ORDER BY sector COLLATE NOCASE`).all();
+  res.json(rows.map(etf=>({...etf,constituents:db.prepare(`SELECT s.symbol,s.name,ec.weight FROM etf_constituents ec JOIN stocks s ON s.id=ec.stock_id WHERE ec.etf_stock_id=? ORDER BY ec.weight DESC,s.symbol`).all(etf.id)})));
 });
 
 app.get("/api/admin/stocks", requireAdmin, (req,res)=>{
@@ -965,6 +1074,40 @@ app.get("/api/admin/stocks", requireAdmin, (req,res)=>{
     ORDER BY s.sector,s.symbol
   `).all(r || 1);
   res.json(stocks);
+});
+
+app.post('/api/admin/fundamentals/import',requireAdmin,(req,res)=>{
+  const rows=Array.isArray(req.body?.rows)?req.body.rows:[];
+  if(!rows.length||rows.length>250)return res.status(400).json({error:'Upload between 1 and 250 stock filing rows.'});
+  const known=new Set(db.prepare(`SELECT symbol FROM stocks WHERE asset_type='STOCK'`).all().map(x=>x.symbol));
+  const seen=new Set();
+  const numberOrNull=value=>value===null||value===undefined||String(value).trim()===''?null:Number(value);
+  const validNumber=value=>value===null||Number.isFinite(value);
+  const normalized=[];
+  for(const row of rows){
+    const symbol=String(row.symbol||'').trim().toUpperCase();
+    if(!known.has(symbol))return res.status(400).json({error:`Unknown NSE stock symbol: ${symbol||'(blank)'}.`});
+    if(seen.has(symbol))return res.status(400).json({error:`Duplicate filing row for ${symbol}.`});
+    seen.add(symbol);
+    const period=String(row.fundamentals_period||row.period||'').trim();
+    const source=String(row.fundamentals_source||row.source_url||'').trim();
+    if(!period||!/^https?:\/\//i.test(source))return res.status(400).json({error:`${symbol} needs a reporting period and a public filing source URL.`});
+    const face=numberOrNull(row.face_value);
+    const paidUp=numberOrNull(row.paid_up_equity_capital_rupees);
+    const providedShares=numberOrNull(row.shares_outstanding);
+    const derivedShares=providedShares??(Number.isFinite(paidUp)&&Number.isFinite(face)&&face>0?Math.round(paidUp/face):null);
+    const item={symbol,period,source,
+      shares:derivedShares,eps:numberOrNull(row.eps),face,
+      book:numberOrNull(row.book_value),dps:numberOrNull(row.dividend_per_share),roe:numberOrNull(row.roe_percent??row.roe),de:numberOrNull(row.debt_equity)};
+    if(![item.shares,item.eps,item.face,item.book,item.dps,item.roe,item.de,paidUp].every(validNumber)||!Number.isInteger(item.shares)||!(item.shares>0)||!(item.face>0)||(paidUp!==null&&paidUp<=0)||item.dps<0||item.de<0)
+      return res.status(400).json({error:`${symbol} has invalid filing values. Provide positive shares, or positive paid-up equity capital and face value so shares can be derived. Dividend and debt/equity cannot be negative.`});
+    normalized.push(item);
+  }
+  const update=db.prepare(`UPDATE stocks SET shares_outstanding=?,eps=?,face_value=?,book_value=?,dividend_per_share=?,roe=?,debt_equity=?,fundamentals_period=?,fundamentals_source=? WHERE symbol=? AND asset_type='STOCK'`);
+  db.transaction(()=>{for(const row of normalized)update.run(row.shares,row.eps,row.face,row.book,row.dps,row.roe,row.de,row.period,row.source,row.symbol)})();
+  refreshEtfWeights();
+  audit(req,'FUNDAMENTALS_IMPORTED',{rows:normalized.length,periods:[...new Set(normalized.map(x=>x.period))]});
+  res.json({ok:true,updated:normalized.length,updatedAt:new Date().toISOString()});
 });
 
 app.get("/api/rounds", requireLogin, (req,res)=>{
@@ -1210,10 +1353,20 @@ app.get("/api/admin/audit", requireAdmin, (req,res)=>{
 });
 
 app.get("/api/stock/:id/history", requireLogin, (req,res)=>{
-  const id=Number(req.params.id); const s=db.prepare(`SELECT id,symbol,name,sector,price,base_price FROM stocks WHERE id=?`).get(id);
+  const id=Number(req.params.id); const s=db.prepare(`SELECT id,symbol,name,sector,price,base_price,asset_type,shares_outstanding,eps,face_value,book_value,dividend_per_share,roe,debt_equity,fundamentals_period,fundamentals_source FROM stocks WHERE id=?`).get(id);
   if(!s) return res.status(404).json({error:'Stock not found'});
   const points=db.prepare(`SELECT round_id,price,reason,created_at FROM price_history WHERE stock_id=? ORDER BY id`).all(id);
-  res.json({stock:s,points:points.map(x=>({label:x.round_id?`R${x.round_id}`:'Base',price:x.price,reason:x.reason,created_at:x.created_at}))});
+  const fundamentals=s.asset_type==='STOCK'?{
+    market_cap:Number(s.shares_outstanding)>0?money(Number(s.price)*Number(s.shares_outstanding)):null,
+    market_cap_cr:Number(s.shares_outstanding)>0?money(Number(s.price)*Number(s.shares_outstanding)/10000000):null,
+    pe_ratio:Number(s.eps)>0?money(Number(s.price)/Number(s.eps)):null,
+    pb_ratio:Number(s.book_value)>0?money(Number(s.price)/Number(s.book_value)):null,
+    dividend_yield:Number(s.price)>0&&s.dividend_per_share!==null&&Number(s.dividend_per_share)>=0?money(Number(s.dividend_per_share)/Number(s.price)*100):null,
+    roe:s.roe,debt_equity:s.debt_equity,face_value:s.face_value,book_value:s.book_value,eps:s.eps,
+    period:s.fundamentals_period,source:s.fundamentals_source
+  }:null;
+  const constituents=s.asset_type==='ETF'?db.prepare(`SELECT s.symbol,s.name,ec.weight FROM etf_constituents ec JOIN stocks s ON s.id=ec.stock_id WHERE ec.etf_stock_id=? ORDER BY ec.weight DESC,s.symbol`).all(id):[];
+  res.json({stock:s,fundamentals,constituents,points:points.map(x=>({label:x.round_id?`R${x.round_id}`:'Base',price:x.price,reason:x.reason,created_at:x.created_at}))});
 });
 
 
@@ -1318,8 +1471,8 @@ app.get("/api/admin/analytics", requireAdmin, (req,res)=>{
     return {...p,...pf,tradeCount,buyValue,sellValue};
   }).sort((a,b)=>b.total-a.total||b.cash-a.cash||a.tradeCount-b.tradeCount||String(a.created_at).localeCompare(String(b.created_at)))
     .map((p,i)=>({...p,rank:i+1}));
-  const sectors=db.prepare(`SELECT s.sector,COUNT(t.id) trades,COALESCE(SUM(t.quantity),0) volume,COALESCE(SUM(CASE WHEN t.side='BUY' THEN t.total ELSE 0 END),0) buy_value,COALESCE(SUM(CASE WHEN t.side='SELL' THEN t.total ELSE 0 END),0) sell_value FROM stocks s LEFT JOIN trades t ON t.stock_id=s.id GROUP BY s.sector ORDER BY trades DESC`).all();
-  const stocks=db.prepare(`SELECT s.symbol,s.name,s.sector,s.price,COUNT(t.id) trades,COALESCE(SUM(t.quantity),0) volume,COALESCE(SUM(CASE WHEN t.side='BUY' THEN t.total ELSE 0 END),0) buy_value,COALESCE(SUM(CASE WHEN t.side='SELL' THEN t.total ELSE 0 END),0) sell_value FROM stocks s LEFT JOIN trades t ON t.stock_id=s.id GROUP BY s.id ORDER BY trades DESC,volume DESC`).all();
+  const sectors=db.prepare(`SELECT s.sector,COUNT(t.id) trades,COALESCE(SUM(t.quantity),0) volume,COALESCE(SUM(CASE WHEN t.side='BUY' THEN t.total ELSE 0 END),0) buy_value,COALESCE(SUM(CASE WHEN t.side='SELL' THEN t.total ELSE 0 END),0) sell_value FROM stocks s LEFT JOIN trades t ON t.stock_id=s.id WHERE s.asset_type='STOCK' GROUP BY s.sector ORDER BY trades DESC`).all();
+  const stocks=db.prepare(`SELECT s.symbol,s.name,s.sector,s.price,s.asset_type,COUNT(t.id) trades,COALESCE(SUM(t.quantity),0) volume,COALESCE(SUM(CASE WHEN t.side='BUY' THEN t.total ELSE 0 END),0) buy_value,COALESCE(SUM(CASE WHEN t.side='SELL' THEN t.total ELSE 0 END),0) sell_value FROM stocks s LEFT JOIN trades t ON t.stock_id=s.id GROUP BY s.id ORDER BY trades DESC,volume DESC`).all();
   const rounds=db.prepare(`SELECT r.id,r.status,COUNT(t.id) trades,COALESCE(SUM(t.total),0) turnover FROM rounds r LEFT JOIN trades t ON t.round_id=r.id GROUP BY r.id ORDER BY r.id`).all();
   const suspicious=db.prepare(`SELECT t.user_id,u.name,u.username,t.round_id,COUNT(*) burst_count FROM trades t JOIN users u ON u.id=t.user_id GROUP BY t.user_id,t.round_id HAVING COUNT(*)>=20 ORDER BY burst_count DESC`).all();
   res.json({state:publicState(),players:ranked,sectors,stocks,rounds,suspicious});
@@ -1363,7 +1516,7 @@ app.get("/api/admin/phase4-analytics", requireAdmin, (req,res)=>{
     SUM(CASE WHEN side='SELL' THEN 1 ELSE 0 END) AS sells
     FROM trades GROUP BY user_id`).all().map(x=>[x.user_id,{buys:Number(x.buys)||0,sells:Number(x.sells)||0}]));
   const rounds=db.prepare(`SELECT id,status,news_title,applied_at FROM rounds ORDER BY id`).all();
-  const sectorMovement=db.prepare(`SELECT sector,COUNT(*) stocks,ROUND(AVG((price-base_price)/base_price*100),2) movement_pct,ROUND(MIN((price-base_price)/base_price*100),2) min_pct,ROUND(MAX((price-base_price)/base_price*100),2) max_pct FROM stocks GROUP BY sector ORDER BY movement_pct DESC`).all();
+  const sectorMovement=db.prepare(`SELECT sector,COUNT(*) stocks,ROUND(AVG((price-base_price)/base_price*100),2) movement_pct,ROUND(MIN((price-base_price)/base_price*100),2) min_pct,ROUND(MAX((price-base_price)/base_price*100),2) max_pct FROM stocks WHERE asset_type='STOCK' GROUP BY sector ORDER BY movement_pct DESC`).all();
   const roundTrades=db.prepare(`SELECT round_id,side,COUNT(*) trades,COALESCE(SUM(total),0) value,COALESCE(SUM(quantity),0) volume FROM trades GROUP BY round_id,side ORDER BY round_id,side`).all();
   res.json({rankings,tradeCounts,rounds,sectorMovement,roundTrades,state:publicState()});
 });
