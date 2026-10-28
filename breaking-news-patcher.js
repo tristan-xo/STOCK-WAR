@@ -31,32 +31,32 @@ function generateBreakingNews(roundId){
   if(mode==='stock'){
     targetStock=all[Math.floor(Math.random()*all.length)]; targetSector=targetStock.sector;
     impact=Number((sign*(12+Math.random()*6)).toFixed(2));
-    headline=(positive?'BREAKING: Strong development lifts ':'BREAKING: Major setback hits ')+targetStock.name;
+    headline=positive?'BREAKING: '+targetStock.name+' catalyst improves its forward cash-flow profile':'BREAKING: '+targetStock.name+' faces a material earnings-risk repricing';
     body=(positive?[
-      targetStock.name+' has announced a major development that materially improves its near-term business outlook.',
-      'The update is expected to strengthen revenue visibility and investor confidence across the '+targetStock.sector+' space.',
-      'Analysts are reassessing earnings expectations as the development could accelerate growth and improve operating momentum.',
-      'The stock is expected to see an unusually strong market reaction as participants digest the announcement.'
+      targetStock.name+' has reported a catalyst that shifts the balance of near-term earnings risks and improves the expected cash-flow distribution.',
+      'Potential upside transmission runs through utilization, contribution margins, or capital efficiency; the durability of each channel remains unconfirmed.',
+      'Investors are recalibrating forecast dispersion, working-capital requirements, and the valuation multiple justified by the revised outlook.',
+      'Teams should assess whether the catalyst is transient or changes normalized returns on invested capital.'
     ]:[
-      targetStock.name+' has reported an unexpected development that materially weakens its near-term business outlook.',
-      'The update raises concerns around earnings visibility and sentiment across the '+targetStock.sector+' space.',
-      'Analysts are reassessing expectations as the development could pressure growth, margins or future cash flows.',
-      'The stock is expected to see an unusually strong market reaction as participants digest the announcement.'
+      targetStock.name+' faces a downside catalyst that widens the distribution of near-term earnings and cash-flow outcomes.',
+      'The shock may propagate through weaker pricing power, adverse fixed-cost absorption, or a longer cash-conversion cycle.',
+      'Investors are reassessing forecast revisions, balance-sheet resilience, and the equity-risk premium required for the exposure.',
+      'Teams should distinguish temporary volatility from a structural impairment to normalized returns on invested capital.'
     ]).join('\n');
   }else{
     targetSector=sectors[Math.floor(Math.random()*sectors.length)];
     impact=Number((sign*(8+Math.random()*4)).toFixed(2));
-    headline=(positive?'BREAKING: Strong developments lift ':'BREAKING: Major setback hits ')+targetSector+' sector';
+    headline=positive?'BREAKING: A common catalyst lifts an exposed issuer cohort':'BREAKING: A correlated shock pressures an exposed issuer cohort';
     body=(positive?[
-      'A major development has sharply improved the near-term outlook for companies across the '+targetSector+' sector.',
-      'The news is expected to improve demand, earnings visibility and investor confidence across several companies in the space.',
-      'Analysts are revising expectations as the development could accelerate growth and strengthen sector-wide operating momentum.',
-      'Stocks across the sector are expected to experience a significant market reaction as investors digest the announcement.'
+      'A common operating catalyst improves the expected cash-flow profile for a cluster of issuers with correlated exposures.',
+      'The repricing channel may run through order-book conversion, capacity utilization, or incremental return on invested capital rather than revenue growth alone.',
+      'Investors must separate durable cash-flow accretion from multiple expansion and assess dispersion between direct beneficiaries and second-order peers.',
+      'The valuation response depends on balance-sheet capacity and the ability to fund incremental working capital.'
     ]:[
-      'A major development has sharply weakened the near-term outlook for companies across the '+targetSector+' sector.',
-      'The news raises concerns around demand, earnings visibility and investor confidence across several companies in the space.',
-      'Analysts are revising expectations as the development could pressure growth, margins or future cash flows across the sector.',
-      'Stocks across the sector are expected to experience a significant market reaction as investors digest the announcement.'
+      'A common shock weakens the cash-flow outlook for a cluster of issuers with correlated operating or funding exposures.',
+      'Transmission may compound through lower fixed-cost absorption, weaker pass-through, and delayed working-capital conversion.',
+      'Investors are revising earnings distributions, covenant headroom, and valuation multiples as downside scenarios gain probability.',
+      'The eventual repricing depends on shock persistence and management’s capacity to protect returns on invested capital.'
     ]).join('\n');
   }
   const tx=db.transaction(()=>{

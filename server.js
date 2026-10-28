@@ -728,36 +728,34 @@ function payScheduledDividends(payoutRound){
 }
 const NEWS_LIBRARY = [
   {category:'Earnings Surprise', sentiment:'positive', weight:18, templates:[
-    ['{{company}} beats earnings estimates as demand strengthens','{{company}} reported stronger-than-expected quarterly performance, with management pointing to resilient demand and improving operating efficiency.'],
-    ['{{company}} raises outlook after strong quarter','{{company}} upgraded its near-term outlook after a stronger quarter, citing better volumes and improved margins.']
+    ['{{company}} posts an earnings beat as operating leverage improves','{{company}} raises guidance as volume mix and incremental margins strengthen']
   ]},
   {category:'Earnings Miss', sentiment:'negative', weight:14, templates:[
-    ['{{company}} misses expectations as costs rise','{{company}} reported weaker-than-expected performance as input costs and margin pressure weighed on the quarter.'],
-    ['{{company}} cuts outlook amid softer demand','{{company}} lowered its near-term outlook after signs of softer demand and cautious customer spending.']
+    ['Margin compression leaves {{company}} below earnings expectations','{{company}} cuts its outlook as demand elasticity and cost absorption weaken']
   ]},
   {category:'Regulatory Shift', sentiment:'negative', weight:10, templates:[
-    ['{{company}} faces tighter regulatory scrutiny','New compliance requirements are expected to increase costs and slow near-term expansion, with {{company}} among the companies most exposed.']
+    ['Compliance overhang raises execution costs and risk at {{company}}']
   ]},
   {category:'Policy Support', sentiment:'positive', weight:10, templates:[
-    ['Policy support gives {{company}} a boost','A new policy package is expected to support investment and demand across {{sector}}, with {{company}} positioned to benefit.']
+    ['Policy incentives could lift returns on incremental capital at {{company}}']
   ]},
   {category:'Commodity Shock', sentiment:'negative', weight:9, templates:[
-    ['Input costs rise, pressuring {{company}} margins','A sharp move in key input costs is expected to pressure margins across {{sector}}, with {{company}} among the more exposed names.']
+    ['Input-cost inflation tests {{company}}’s pricing power and margin resilience']
   ]},
   {category:'Demand Surge', sentiment:'positive', weight:9, templates:[
-    ['Demand surge lifts {{company}} outlook','Industry data points to a stronger demand cycle across {{sector}}, improving volume expectations for {{company}} and peers.']
+    ['Demand acceleration improves utilization outlook for {{company}}']
   ]},
   {category:'Major Contract', sentiment:'positive', weight:8, templates:[
-    ['{{company}} wins a major new contract','The contract is expected to improve revenue visibility and sentiment for {{company}}, with positive spillovers across {{sector}}.']
+    ['{{company}}’s contract win expands backlog visibility but raises execution stakes']
   ]},
   {category:'Supply Disruption', sentiment:'negative', weight:7, templates:[
-    ['Supply disruption hits {{company}}','Logistics and supply constraints are expected to create near-term production and delivery pressure for {{company}} and parts of {{sector}}.']
+    ['Supply-chain friction threatens throughput and working-capital efficiency at {{company}}']
   ]},
   {category:'Market Risk', sentiment:'negative', weight:8, templates:[
-    ['Global risk-off mood weighs on Indian equities','Rising global uncertainty is pushing investors toward safer assets, creating broad pressure across Indian equities.']
+    ['Risk-off flows accelerate multiple compression across Indian equities']
   ]},
   {category:'Market Rally', sentiment:'positive', weight:7, templates:[
-    ['Global risk appetite lifts Indian equities','Improved global risk appetite and stronger flows are supporting broad-based buying across Indian equities.']
+    ['Risk appetite and institutional flows support a broad-based equity re-rating']
   ]}
 ];
 const NEWS_SECTOR_WEIGHTS = [
@@ -776,76 +774,74 @@ function newsImpact(entry){
 }
 function buildNewsBody(entry, company, sector, sentiment, impact, marketWide){
   const direction=sentiment==='positive'?'positive':'negative';
-  const pct=(Math.abs(Number(impact))||0).toFixed(1);
   const subject=marketWide?'Indian equities':company;
-  const sectorText=marketWide?'the broader market':sector;
   const lines={
     'Earnings Surprise':[
-      `${company} reported a stronger-than-expected quarter, supported by resilient demand and improved operating execution.`,
-      `Management highlighted healthy order flow and better visibility for the coming period.`,
-      `Analysts expect the result to improve sentiment around ${company} and the wider ${sector} space.`,
-      `The market is watching whether the stronger performance can be sustained in the next quarter.`
+      `${company} exceeded simulated consensus expectations as resilient throughput and a favorable revenue mix lifted operating performance.`,
+      `Incremental-margin expansion suggests improved fixed-cost absorption, although the respective contributions from pricing, volume, and non-recurring items remain uncertain.`,
+      `A higher earnings run-rate could support cash-flow revisions, but inventory intensity and receivables conversion will determine the quality of that growth.`,
+      `Teams should distinguish durable return-on-capital improvement from a temporary valuation-multiple expansion.`
     ],
     'Earnings Miss':[
-      `${company} reported weaker-than-expected results as demand and margins came under pressure.`,
-      `Management pointed to cautious customer spending and higher operating costs as key concerns.`,
-      `The weaker update is putting pressure on sentiment across the ${sector} sector.`,
-      `Investors will watch upcoming guidance for signs of stabilization or further deterioration.`
+      `${company} fell short of simulated expectations as softer demand and an adverse mix reduced contribution margins.`,
+      `Elevated input costs appear difficult to pass through, weakening fixed-cost absorption and increasing the risk of operating deleverage.`,
+      `The downgrade also raises questions about earnings quality, cash conversion, and the resilience of the balance-sheet funding position.`,
+      `Teams should assess whether the market is pricing a cyclical trough or a more persistent impairment to normalized returns.`
     ],
     'Regulatory Shift':[
-      `Regulators have introduced tighter requirements that could affect ${company}'s near-term operations.`,
-      `The changes are expected to increase compliance costs and may slow planned expansion.`,
-      `${company} is among the more exposed names in the ${sector} sector.`,
-      `Investors are assessing how quickly the company can adapt without affecting profitability.`
+      `New compliance obligations create a potential structural cost overhang for ${company}, with implementation timelines adding execution uncertainty.`,
+      `Incremental controls may lengthen approval cycles, defer capacity utilization, and increase recurring expenditure relative to the existing cost base.`,
+      `The earnings effect will depend on the company’s ability to absorb compliance costs without diluting pricing power or planned returns on capital.`,
+      `Teams should weigh regulatory duration, pass-through capacity, and the risk of a lower terminal margin assumption.`
     ],
     'Policy Support':[
-      `A new policy package is expected to support investment and demand across the ${sector} sector.`,
-      `${company} is positioned to benefit from the proposed incentives and higher activity.`,
-      `Industry participants expect the measures to improve order visibility over the coming quarters.`,
-      `The market is now assessing how quickly the policy support can translate into earnings.`
+      `A proposed incentive framework could improve the risk-adjusted return on incremental investment relevant to ${company}.`,
+      `Potential benefits depend on eligibility, implementation lags, and whether subsidies translate into end-market demand rather than merely shifting project timing.`,
+      `A stronger order pipeline may improve revenue visibility, but conversion into free cash flow will depend on capex intensity and working-capital needs.`,
+      `Teams should separate policy optionality from earnings already supported by contracted demand.`
     ],
     'Commodity Shock':[
-      `A sharp move in key input prices is changing the cost outlook for ${company}.`,
-      `Higher input costs could pressure margins if the increase cannot be passed on to customers.`,
-      `Other companies across ${sector} may face similar cost pressure.`,
-      `Investors are watching commodity prices closely for signs of further escalation or relief.`
+      `A sharp input-cost repricing changes ${company}’s gross-margin outlook and exposes the sensitivity of its cost base to commodity volatility.`,
+      `The realized impact depends on pass-through elasticity, contract-reset frequency, hedging coverage, and the lag between procurement and customer pricing.`,
+      `If pricing adjustments trail cost inflation, operating leverage can amplify the pressure on earnings and near-term cash conversion.`,
+      `Teams should evaluate inventory cover and pricing power before treating the shock as either transitory or structural.`
     ],
     'Demand Surge':[
-      `Fresh industry data points to stronger demand across ${sector}, improving volume expectations.`,
-      `${company} is among the companies positioned to capture the increase in customer activity.`,
-      `Higher utilization and stronger volumes could support revenue growth in the coming periods.`,
-      `The key question for investors is whether the demand improvement will persist.`
+      `High-frequency indicators point to an acceleration in demand relevant to ${company}, improving the prospective volume and utilization profile.`,
+      `Higher throughput could expand contribution margins if incremental volumes use existing capacity and do not require disproportionate acquisition spending.`,
+      `The signal remains vulnerable to base effects, channel inventory, and substitution between premium and lower-margin products.`,
+      `Teams should test the durability of the demand impulse against capacity constraints and the cash required to fund growth.`
     ],
     'Major Contract':[
-      `${company} has secured a major new contract that improves its revenue visibility.`,
-      `The project is expected to contribute to future order execution and cash flows.`,
-      `The announcement also improves sentiment toward selected companies in ${sector}.`,
-      `Investors will track execution milestones and the contract's contribution to earnings.`
+      `${company}’s contract win expands backlog visibility and improves the forward revenue pipeline, subject to delivery milestones.`,
+      `Headline order value alone does not establish economic value; margin profile, cancellation clauses, and customer concentration determine risk-adjusted contribution.`,
+      `Execution may absorb working capital before cash collection, creating a timing gap between reported revenue and free cash flow.`,
+      `Teams should monitor backlog conversion, project returns, and the possibility that capacity is diverted from higher-margin work.`
     ],
     'Supply Disruption':[
-      `A supply-chain disruption is creating near-term production and delivery pressure for ${company}.`,
-      `Logistics constraints could delay shipments and increase operating costs.`,
-      `Parts of the ${sector} sector may also experience knock-on effects if the disruption persists.`,
-      `Investors are watching inventory levels and recovery timelines for further clues.`
+      `A supply-chain bottleneck threatens ${company}’s throughput, delivery cadence, and ability to meet near-term customer commitments.`,
+      `Longer lead times can raise buffer inventory and expedite costs, tying up working capital while weakening asset turnover.`,
+      `Production slippage may defer revenue recognition and create operating deleverage if fixed costs continue against lower output.`,
+      `Teams should distinguish a temporary logistics interruption from a structural constraint on capacity and cash conversion.`
     ],
     'Market Risk':[
-      `Rising global uncertainty is pushing investors toward safer assets and reducing risk appetite.`,
-      `Indian equities are facing broader selling pressure as investors reassess growth expectations.`,
-      `High-beta sectors and stocks may see larger moves as volatility increases.`,
-      `Market participants are watching global cues and institutional flows for signs of stabilization.`
+      `A deterioration in global risk appetite is redirecting capital toward lower-duration and higher-quality assets.`,
+      `Foreign-flow pressure and a higher required equity-risk premium can compress valuation multiples before earnings estimates are revised.`,
+      `High-beta exposures remain vulnerable to liquidity-driven price moves, while leverage and refinancing sensitivity can magnify dispersion.`,
+      `Teams should separate fundamental deterioration from discount-rate repricing and monitor breadth, flows, and forward earnings revisions.`
     ],
     'Market Rally':[
-      `Improved global risk appetite is supporting broader buying across Indian equities.`,
-      `Stronger overseas flows and easing uncertainty are improving market sentiment.`,
-      `Cyclical and growth-oriented sectors are seeing increased investor interest.`,
-      `The market will watch whether the positive momentum can continue through the session.`
+      `An improvement in global risk appetite and institutional flows is supporting a broader repricing of Indian equities.`,
+      `Lower perceived uncertainty can reduce the equity-risk premium and favor long-duration earnings, even before near-term estimates change.`,
+      `The advance is more durable when market breadth, cash-market participation, and earnings revisions confirm the index-level move.`,
+      `Teams should distinguish a liquidity-led multiple expansion from a rally supported by stronger expected cash flows.`
     ]
   };
   const chosen=lines[entry.category]||[
-    `${subject} is seeing a ${direction} development that is attracting investor attention.`,
-    `The development is expected to influence sentiment across ${sectorText}.`,
-    `Market participants are reassessing near-term earnings and growth expectations.`,
-    `Investors will watch subsequent updates to determine whether the move is sustained.`
+    `${subject} is experiencing a ${direction} catalyst that may alter the distribution of near-term cash-flow outcomes.`,
+    `The market response will depend on operating leverage, funding requirements, and the persistence of the underlying change.`,
+    `Reported earnings, working-capital conversion, and valuation assumptions may adjust on different timelines.`,
+    `Teams should distinguish a change in intrinsic value from a temporary repricing of risk and liquidity.`
   ];
   return chosen.join('\n');
 }
@@ -888,8 +884,8 @@ function generateRoundNews(roundId){
       const stock=choices[Math.floor(Math.random()*choices.length)];
       dividendStockIds.add(Number(stock.id)); usedCompanies.add(Number(stock.id));
       const impact=money(randomBetween(AUTO_NEWS_MIN_PCT/2.2,AUTO_NEWS_MAX_PCT/2.2));
-      const headline=`${stock.name} declares a cash dividend`;
-      const body=`The company has declared a cash dividend for qualifying holders. Teams must hold shares at the close of Round ${plan.eligibleRound} and retain them until Round ${plan.payoutRound} begins. Shares sold before then will not qualify. Eligible cash will be credited automatically at the start of the payout round.`;
+      const headline=`${stock.name} declares a distribution; record-date exposure becomes decisive`;
+      const body=`The distribution creates a time-bound event position: entitlement is based on the Round ${plan.eligibleRound} closing position, and qualifying units must remain held until Round ${plan.payoutRound} begins. Interim disposals reduce eligible volume, while subsequent purchases do not increase the record-date base. Teams should weigh the cash benefit against mark-to-market exposure, liquidity constraints, and the opportunity cost of maintaining the position.`;
       const news=insertNews.run(roundId,'Dividend Declaration','positive','STOCK',null,headline,body,impact);
       insertDividend.run(roundId,plan.payoutRound,plan.eligibleRound,stock.id,Number(stock.dividend_per_share));
       stories.push({id:Number(news.lastInsertRowid),category:'Dividend Declaration',sentiment:'positive',scope:'STOCK',targetSector:null,headline,body,impactPct:impact,stock:stock.name,symbol:stock.symbol});
@@ -1374,13 +1370,29 @@ app.get("/api/player/transactions", requireLogin, (req,res)=>{
 });
 app.get("/api/player/export-transactions", requireLogin, (req,res)=>{
   if(user(req).role!=='player') return res.status(403).json({error:'Team account access required'});
-  // Final player export intentionally contains only the four requested fields.
-  // The execution price is the actual price recorded for that transaction.
-  const rows=db.prepare(`SELECT t.round_id,s.name,t.price,t.quantity
-    FROM trades t JOIN stocks s ON s.id=t.stock_id WHERE t.user_id=? ORDER BY t.id`).all(user(req).id);
   const csvEscape=v=>{const text=String(v??'');return /[",\n\r]/.test(text)?`"${text.replace(/"/g,'""')}"`:text};
-  const headers=['Round','Stock Name','Price','Qty'];
-  const csv=['\uFEFF'+headers.join(','),...rows.map(r=>[r.round_id,r.name,Number(r.price).toFixed(2),r.quantity].map(csvEscape).join(','))].join('\r\n');
+  const moneyCell=value=>Number.isFinite(Number(value))?Number(value).toFixed(2):'';
+  const pf=portfolio(user(req).id);
+  const holdings=pf.holdings;
+  const trades=db.prepare(`SELECT t.id,t.round_id,t.created_at,t.side,t.quantity,t.price,t.total,t.order_type,t.limit_price,t.fee,t.net_total,t.realized_pnl,s.symbol,s.name,s.price current_price
+    FROM trades t JOIN stocks s ON s.id=t.stock_id WHERE t.user_id=? ORDER BY t.id`).all(user(req).id);
+  const headers=['Record Type','Round','Timestamp','Trade ID','Side','Stock Symbol','Stock Name','Quantity','Order Type','Limit Price','Execution Price','Gross Amount','Fees','Net Cash Flow','Realized P/L','Realized P/L %','Avg. Cost','Current Price','Cost Basis','Market Value','Unrealized P/L','Cash Balance','Portfolio Value','Total P/L'];
+  const output=[headers];
+  output.push(['SUMMARY','','','','','','','','','','','','','',moneyCell(pf.realizedPnl),'','','',moneyCell(pf.cost),moneyCell(pf.marketValue),moneyCell(pf.unrealizedPnl),moneyCell(pf.cash),moneyCell(pf.total),moneyCell(pf.profit)]);
+  for(const h of holdings){
+    output.push(['HOLDING','','','','',h.symbol,h.name,h.quantity,'','','','','','','','',moneyCell(h.avg_price),moneyCell(h.price),moneyCell(h.cost_basis),moneyCell(h.market_value),moneyCell(h.unrealized_pnl),'','','']);
+  }
+  for(const t of trades){
+    const gross=Number(t.total)||0;
+    const fee=Number(t.fee)||0;
+    const hasStoredNet=t.net_total!==null&&t.net_total!==undefined&&t.net_total!==''&&Number.isFinite(Number(t.net_total));
+    const net=hasStoredNet?Number(t.net_total):(t.side==='BUY'?gross+fee:gross-fee);
+    const realized=t.side==='SELL'?Number(t.realized_pnl)||0:null;
+    const costBasis=realized===null?null:net-realized;
+    const realizedPct=costBasis>0?realized/costBasis*100:null;
+    output.push(['TRADE',t.round_id,t.created_at,t.id,t.side,t.symbol,t.name,t.quantity,t.order_type||'MARKET',t.limit_price===null||t.limit_price===undefined?'':moneyCell(t.limit_price),moneyCell(t.price),moneyCell(gross),moneyCell(fee),moneyCell(t.side==='BUY'?-net:net),realized===null?'Not realized':moneyCell(realized),realizedPct===null?'':`${realizedPct.toFixed(2)}%`,'',moneyCell(t.current_price),'','','','','','']);
+  }
+  const csv=['\uFEFF',...output.map(row=>row.map(csvEscape).join(','))].join('\r\n');
   res.setHeader('Content-Type','text/csv; charset=utf-8');
   res.setHeader('Content-Disposition','attachment; filename="stock-wars-transaction-history.csv"');
   res.send(csv);
